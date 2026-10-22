@@ -1,0 +1,81 @@
+my-portofolio
+├── public
+│   └── uploads
+│       └── avatar-1792583569121-421324191.jpeg
+├── src
+│   ├── actions
+│   │   └── profile.actions.js
+│   ├── app
+│   │   ├── admin
+│   │   │   ├── contact
+│   │   │   │   └── page.js
+│   │   │   ├── education
+│   │   │   │   └── page.js
+│   │   │   ├── experience
+│   │   │   │   └── page.js
+│   │   │   ├── home
+│   │   │   │   ├── education_section
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── experience_section
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── hero_section
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── projects_section
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── skills_section
+│   │   │   │   │   └── page.js
+│   │   │   │   └── page.js
+│   │   │   ├── projects
+│   │   │   │   └── page.js
+│   │   │   ├── skills
+│   │   │   │   └── page.js
+│   │   │   └── page.js
+│   │   ├── auth
+│   │   │   └── page.js
+│   │   ├── contact
+│   │   │   ├── components
+│   │   │   └── page.js
+│   │   ├── education
+│   │   │   └── page.js
+│   │   ├── experiences
+│   │   │   ├── components
+│   │   │   └── page.js
+│   │   ├── home
+│   │   │   ├── ExperienceSection.jsx
+│   │   │   ├── HeroSection.jsx
+│   │   │   ├── ProjectsSection.jsx
+│   │   │   └── SkillsSection.jsx
+│   │   ├── projects
+│   │   │   └── page.js
+│   │   ├── skills
+│   │   │   ├── components
+│   │   │   └── page.js
+│   │   ├── test-connection
+│   │   │   └── page.js
+│   │   ├── globals.css
+│   │   ├── layout.js
+│   │   └── page.js
+│   ├── blueprint
+│   │   ├── DATABASE.MD
+│   │   └── EXPERIENCE.md
+│   ├── config
+│   │   └── database.js
+│   ├── hooks
+│   │   ├── useContacts.js
+│   │   ├── useExperiences.js
+│   │   ├── useHeroSection.js
+│   │   ├── useLogin.js
+│   │   ├── useProjects.js
+│   │   └── useSkills.js
+│   └── lib
+├── .env.local
+├── .env.production
+├── .gitignore
+├── eslint.config.mjs
+├── jsconfig.json
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── README.md
+└── tree.txt
