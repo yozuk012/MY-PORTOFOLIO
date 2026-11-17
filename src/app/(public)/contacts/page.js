@@ -108,6 +108,11 @@ async function ContactsContent() {
     return cleaned.startsWith("0") ? `62${cleaned.slice(1)}` : cleaned;
   };
 
+  const formatEmailUrl = (email) => {
+    const normalizedEmail = email.trim().replace(/^mailto:/i, "");
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(normalizedEmail)}`;
+  };
+
   return (
     <>
       {/* ===== GRID KARTU KONTAK ===== */}
@@ -115,7 +120,9 @@ async function ContactsContent() {
         {/* 1. Email */}
         {contact?.email && (
           <a
-            href={`mailto:${contact.email}`}
+            href={formatEmailUrl(contact.email)}
+            target="_blank"
+            rel="noopener noreferrer"
             className="group p-6 md:p-8 bg-surface/30 border border-border/40 rounded-xl hover:border-accent/40 hover:bg-surface/50 transition-all duration-300 flex flex-col gap-4"
           >
             <div className="p-3 bg-surface border border-border/40 group-hover:bg-accent/10 group-hover:border-accent/30 rounded-lg w-fit transition-colors">
