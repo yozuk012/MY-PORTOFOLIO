@@ -64,6 +64,7 @@ my-project
 │       ├── client.js
 │       └── server.js
 ├── .env.local
+├── .env.production
 ├── .gitignore
 ├── eslint.config.mjs
 ├── jsconfig.json

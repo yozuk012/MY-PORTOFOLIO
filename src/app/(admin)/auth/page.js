@@ -3,11 +3,18 @@
 
 import { useState } from "react";
 import { useAuth } from "@/hooks/admin/useAuth";
-import { FaArrowLeft, FaLock, FaEnvelope } from "react-icons/fa";
+import {
+  FaArrowLeft,
+  FaLock,
+  FaEnvelope,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { signIn, loading, error } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -78,16 +85,31 @@ export default function LoginPage() {
             <FaLock className="w-2.5 h-2.5 text-accent" />
             Password
           </label>
-          <input
-            id="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full px-0 py-2 bg-transparent border-0 border-b border-border/60 text-text-main placeholder-text-muted/40 font-mono text-sm focus:outline-none focus:border-accent transition-colors"
-          />
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-0 pr-10 py-2 bg-transparent border-0 border-b border-border/60 text-text-main placeholder-text-muted/40 font-mono text-sm focus:outline-none focus:border-accent transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((isVisible) => !isVisible)}
+              aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+              title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-text-muted hover:text-accent focus:outline-none focus:text-accent transition-colors"
+            >
+              {showPassword ? (
+                <FaEyeSlash className="w-3.5 h-3.5" />
+              ) : (
+                <FaEye className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Error */}
