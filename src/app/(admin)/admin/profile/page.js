@@ -43,7 +43,6 @@ export default function ManageProfilePage() {
   });
   const [imageFile, setImageFile] = useState(null);
 
-  // Sinkronisasi data profil → form saat pertama load
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -120,6 +119,17 @@ export default function ManageProfilePage() {
   const getPlatformIcon = (platform) => {
     const found = PLATFORMS.find((p) => p.value === platform?.toLowerCase());
     return found?.icon || FaUserCircle;
+  };
+
+  // ✅ Helper untuk format link di preview card
+  const formatUrl = (platform, url) => {
+    if (!url) return "#";
+    const key = platform?.toLowerCase().trim();
+    const cleanUrl = url.trim();
+    if (key === "email") {
+      return cleanUrl.startsWith("mailto:") ? cleanUrl : `mailto:${cleanUrl}`;
+    }
+    return cleanUrl.startsWith("http") ? cleanUrl : `https://${cleanUrl}`;
   };
 
   // ============================================
@@ -254,7 +264,8 @@ export default function ManageProfilePage() {
                       return (
                         <a
                           key={i}
-                          href={link.url}
+                          // ✅ FIX: Gunakan formatUrl agar preview link email/website valid
+                          href={formatUrl(link.platform, link.url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-text-muted hover:text-accent transition-colors"

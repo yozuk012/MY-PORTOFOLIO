@@ -269,7 +269,7 @@ export function DynamicArrayInput({
 }
 
 // ============================================
-// 4. DYNAMIC SOCIAL LINKS — dengan ikon platform
+// 4. DYNAMIC SOCIAL LINKS
 // ============================================
 export const PLATFORMS = [
   { value: "github", label: "GitHub", icon: FaGithub },
@@ -294,7 +294,10 @@ export function DynamicSocialLinks({ label, value = [], onChange, maxItems = 3, 
 
   const handleChange = (index, field, val) => {
     const newArray = [...value];
-    newArray[index] = { ...newArray[index], [field]: val };
+    newArray[index] = { 
+      ...newArray[index], 
+      [field]: val
+    };
     onChange(newArray);
   };
 
@@ -334,13 +337,13 @@ export function DynamicSocialLinks({ label, value = [], onChange, maxItems = 3, 
         {value.map((link, index) => {
           const selected = PLATFORMS.find((p) => p.value === link.platform);
           const Icon = selected?.icon || FaLink;
+          const isEmail = link.platform === "email";
 
           return (
             <div
               key={index}
               className="flex flex-wrap md:flex-nowrap gap-2 p-3 bg-surface/40 border border-border/40 rounded-lg"
             >
-              {/* Ikon Platform */}
               <div
                 className="w-10 h-10 flex items-center justify-center bg-surface border border-border/40 rounded-lg flex-shrink-0"
                 title={selected?.label || "Belum dipilih"}
@@ -352,7 +355,6 @@ export function DynamicSocialLinks({ label, value = [], onChange, maxItems = 3, 
                 />
               </div>
 
-              {/* Select Platform */}
               <select
                 value={link.platform}
                 onChange={(e) => handleChange(index, "platform", e.target.value)}
@@ -366,20 +368,19 @@ export function DynamicSocialLinks({ label, value = [], onChange, maxItems = 3, 
                 ))}
               </select>
 
-              {/* URL Input */}
+              {/* ✅ FIX: Gunakan type="text" agar HTML5 tidak memblokir submit saat ada spasi/format aneh */}
               <input
                 type="text"
                 value={link.url}
                 onChange={(e) => handleChange(index, "url", e.target.value)}
                 placeholder={
-                  link.platform === "email"
-                    ? "mailto:nama@email.com"
+                  isEmail
+                    ? "achmadaldino@gmail.com"
                     : "https://..."
                 }
                 className="flex-1 min-w-0 px-3 py-2 bg-surface border border-border/40 rounded-lg text-text-main placeholder-text-muted/40 text-xs font-mono focus:outline-none focus:border-accent transition-colors"
               />
 
-              {/* Remove Button */}
               <button
                 type="button"
                 onClick={() => handleRemove(index)}
@@ -403,7 +404,7 @@ export function DynamicSocialLinks({ label, value = [], onChange, maxItems = 3, 
 }
 
 // ============================================
-// 5. FILE UPLOAD — preview synced dengan value
+// 5. FILE UPLOAD
 // ============================================
 export function FileUpload({
   label,
@@ -418,7 +419,6 @@ export function FileUpload({
   const [preview, setPreview] = useState(value || null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Sync preview saat value berubah dari luar (misal profile selesai diload)
   useEffect(() => {
     setPreview(value || null);
   }, [value]);

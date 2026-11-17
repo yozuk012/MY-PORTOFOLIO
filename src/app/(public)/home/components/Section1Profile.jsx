@@ -15,7 +15,7 @@ import {
   FaLink,
   FaMapMarkerAlt,
   FaUser,
-  FaArrowRight, // ✅ Menggunakan panah standar
+  FaArrowRight,
 } from "react-icons/fa";
 
 export default async function Section1Profile() {
@@ -81,6 +81,26 @@ export default async function Section1Profile() {
       other: "Lainnya",
     };
     return labels[key] || platform || "Link";
+  };
+
+  // ============================================
+  // ✅ FORMAT URL (Agar link tidak menjadi relative path)
+  // ============================================
+  const formatUrl = (platform, url) => {
+    const normalizedUrl = url?.trim();
+    if (!normalizedUrl) return "#";
+    const key = platform?.trim().toLowerCase();
+
+    // Gunakan Gmail compose agar link tetap dapat dibuka di browser.
+    if (key === "email") {
+      const email = normalizedUrl.replace(/^mailto:/i, "");
+      return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+    }
+
+    // Jika platform lain (github, website, dll), pastikan ada https://
+    return /^https?:\/\//i.test(normalizedUrl)
+      ? normalizedUrl
+      : `https://${normalizedUrl}`;
   };
 
   return (
@@ -167,7 +187,7 @@ export default async function Section1Profile() {
                 profile.social_links.map((link, i) => (
                   <a
                     key={i}
-                    href={link.url}
+                    href={formatUrl(link.platform, link.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors"
@@ -195,7 +215,6 @@ export default async function Section1Profile() {
               "Web Developer yang fokus pada website modern, responsif, dan aksesibel."}
           </p>
 
-          {/* ✅ CTA Editorial: Teks, Garis, Panah */}
           <a
             href="/contacts"
             className="group mt-8 inline-flex items-center gap-3 text-xs font-mono uppercase tracking-widest text-accent transition-opacity hover:opacity-80"

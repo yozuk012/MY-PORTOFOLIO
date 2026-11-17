@@ -1,7 +1,7 @@
 // src/hooks/admin/useProfile.js
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/client";
 
 // Konfigurasi Storage
@@ -10,6 +10,10 @@ const PROFILE_FOLDER = "picture-profile";
 
 const getErrorMessage = (error, fallbackMessage) => {
   if (!error) return fallbackMessage;
+
+  if (error.code === "PGRST116") {
+    return "Profile tidak dapat diperbarui. Periksa RLS Supabase: user yang sudah login harus memiliki policy UPDATE pada tabel profile.";
+  }
 
   const details = [error.message, error.details, error.hint, error.code]
     .filter(Boolean)
@@ -25,7 +29,7 @@ export function useProfile() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // ============================================
   // FETCH PROFILE
@@ -131,6 +135,15 @@ export function useProfile() {
       setError(null);
       setSuccessMessage(null);
 
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        throw new Error("Sesi login tidak valid. Silakan logout lalu login kembali.");
+      }
+
       let photoUrl = formData.photo_url;
       const oldPhotoUrl = profile?.photo_url;
 
@@ -146,7 +159,10 @@ export function useProfile() {
         photo_url: photoUrl,
         role: formData.role,
         top_skills: formData.top_skills || [],
-        social_links: formData.social_links || [],
+        social_links: (formData.social_links || []).map((link) => ({
+          platform: link.platform?.trim() || "",
+          url: link.url?.trim() || "",
+        })),
         is_active: formData.is_active,
         updated_at: new Date().toISOString(),
       };
@@ -165,14 +181,16 @@ export function useProfile() {
         setSuccessMessage("Profile berhasil dibuat!");
       } else {
         // Jika sudah ada, update
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("profile")
           .update(updateData)
-          .eq("id", profile.id);
+          .eq("id", profile.id)
+          .select()
+          .single();
 
         if (error) throw error;
 
-        setProfile({ ...profile, ...updateData });
+        setProfile(data);
         setSuccessMessage("Profile berhasil diperbarui!");
       }
 
