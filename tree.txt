@@ -1,0 +1,76 @@
+my-project
+├── public
+├── src
+│   ├── app
+│   │   ├── (admin)
+│   │   │   ├── admin
+│   │   │   │   ├── components
+│   │   │   │   │   ├── BackButton.jsx
+│   │   │   │   │   ├── Button.jsx
+│   │   │   │   │   ├── Form.jsx
+│   │   │   │   │   └── Table.jsx
+│   │   │   │   ├── contacts
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── education
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── experiences
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── homepage-order
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── profile
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── projects
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── skills
+│   │   │   │   │   └── page.js
+│   │   │   │   └── page.js
+│   │   │   └── auth
+│   │   │       ├── layout.js
+│   │   │       └── page.js
+│   │   ├── (public)
+│   │   │   ├── contacts
+│   │   │   │   └── page.js
+│   │   │   ├── experiences
+│   │   │   │   └── page.js
+│   │   │   ├── home
+│   │   │   │   └── components
+│   │   │   │       ├── Section1Profile.jsx
+│   │   │   │       ├── Section2Skills.jsx
+│   │   │   │       ├── Section3Education.jsx
+│   │   │   │       ├── Section4Experiences.jsx
+│   │   │   │       └── Section5Projects.jsx
+│   │   │   ├── projects
+│   │   │   │   └── page.js
+│   │   │   ├── skills
+│   │   │   │   └── page.js
+│   │   │   └── test-connection
+│   │   │       └── page.js
+│   │   ├── globals.css
+│   │   ├── layout.js
+│   │   ├── not-found.js
+│   │   └── page.js
+│   ├── hooks
+│   │   ├── admin
+│   │   │   ├── useAuth.js
+│   │   │   ├── useContacts.js
+│   │   │   ├── useEducations.js
+│   │   │   ├── useExperiences.js
+│   │   │   ├── useHomeOrder.js
+│   │   │   ├── useProfile.js
+│   │   │   ├── useProjects.js
+│   │   │   └── useSkills.js
+│   │   └── public
+│   └── lib
+│       ├── client.js
+│       └── server.js
+├── .env.local
+├── .gitignore
+├── eslint.config.mjs
+├── jsconfig.json
+├── middleware.js
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── README.md
+└── tree.txt
