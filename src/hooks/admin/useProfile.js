@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/client";
-// 🆕 BARU: Import fungsi translate dari lib yang sudah kamu buat
 import { translateToEnglish } from "@/lib/translate";
 
 // ============================================
@@ -10,6 +9,8 @@ import { translateToEnglish } from "@/lib/translate";
 // ============================================
 const BUCKET_NAME = "my-portofolio";
 const PROFILE_FOLDER = "profiles";
+const CV_FOLDER = "curriculum vitae"; // Sesuai dengan nama folder di bucket Anda
+const MAX_CV_SIZE = 5 * 1024 * 1024;
 
 const getErrorMessage = (error, fallbackMessage) => {
   if (!error) return fallbackMessage;
@@ -98,7 +99,47 @@ export function useProfile() {
   };
 
   // ============================================
-  // 3. DELETE OLD IMAGE (BEST EFFORT / FIRE-AND-FORGET)
+  // 🆕 3. UPLOAD CV (KHUSUS FILE PDF/DOKUMEN)
+  // ============================================
+  const uploadCV = async (file) => {
+    if (!file) return null;
+
+    try {
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
+      if (fileExt !== "pdf" || (file.type && file.type !== "application/pdf")) {
+        throw new Error("File CV harus berformat PDF.");
+      }
+
+      if (file.size > MAX_CV_SIZE) {
+        throw new Error("Ukuran file CV maksimal 5 MB.");
+      }
+
+      const fileName = `cv-${Date.now()}.${fileExt}`;
+      const filePath = `${CV_FOLDER}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: "application/pdf",
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from(BUCKET_NAME)
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error("Error uploading CV:", err);
+      throw new Error("Gagal mengupload CV: " + err.message);
+    }
+  };
+
+  // ============================================
+  // 4. DELETE OLD IMAGE (BEST EFFORT / FIRE-AND-FORGET)
   // ============================================
   const deleteOldImage = async (imageUrl) => {
     if (!imageUrl) return;
@@ -109,56 +150,78 @@ export function useProfile() {
       
       let filePath = "";
       if (markerIndex !== -1) {
-        filePath = decodeURIComponent(
-          imageUrl.slice(markerIndex + marker.length).split(/[?#]/)[0]
-        );
+        filePath = decodeURIComponent(imageUrl.slice(markerIndex + marker.length).split(/[?#]/)[0]);
       } else if (imageUrl.startsWith(`${PROFILE_FOLDER}/`)) {
         filePath = decodeURIComponent(imageUrl.split(/[?#]/)[0]);
       }
 
       if (!filePath || !filePath.startsWith(`${PROFILE_FOLDER}/`)) {
-        console.warn("⛔ [deleteOldImage] Path tidak valid atau di luar folder profiles:", filePath);
+        console.warn("⛔ [deleteOldImage] Path tidak valid:", filePath);
         return;
       }
 
-      const { error } = await supabase.storage
-        .from(BUCKET_NAME)
-        .remove([filePath]);
-
-      if (error) {
-        console.warn("⚠️ [deleteOldImage] Gagal menghapus gambar lama (Best Effort):", error.message);
-      } else {
-        console.log("✅ [deleteOldImage] Berhasil dihapus:", filePath);
-      }
+      const { error } = await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+      if (error) console.warn("⚠️ [deleteOldImage] Gagal menghapus gambar lama:", error.message);
     } catch (err) {
-      console.warn("⚠️ [deleteOldImage] Exception saat menghapus:", err);
+      console.warn("⚠️ [deleteOldImage] Exception:", err);
     }
   };
 
   // ============================================
-  // 4. UPDATE PROFILE (Create or Update) + AUTO TRANSLATE
+  // 🆕 5. DELETE OLD CV (BEST EFFORT / FIRE-AND-FORGET)
   // ============================================
-  const updateProfile = async (formData, imageFile = null) => {
+  const deleteOldCV = async (cvUrl) => {
+    if (!cvUrl) return;
+
+    try {
+      const marker = `/storage/v1/object/public/${BUCKET_NAME}/`;
+      const markerIndex = cvUrl.indexOf(marker);
+      
+      let filePath = "";
+      if (markerIndex !== -1) {
+        filePath = decodeURIComponent(cvUrl.slice(markerIndex + marker.length).split(/[?#]/)[0]);
+      } else if (cvUrl.includes(CV_FOLDER)) {
+        const folderIndex = cvUrl.indexOf(CV_FOLDER);
+        filePath = decodeURIComponent(cvUrl.slice(folderIndex).split(/[?#]/)[0]);
+      }
+
+      if (!filePath) return;
+
+      const { error } = await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+      if (error) console.warn("⚠️ [deleteOldCV] Gagal menghapus CV lama:", error.message);
+    } catch (err) {
+      console.warn("⚠️ [deleteOldCV] Exception:", err);
+    }
+  };
+
+  // ============================================
+  // 6. UPDATE PROFILE (Create or Update) + AUTO TRANSLATE + CV
+  // ============================================
+  const updateProfile = async (formData, imageFile = null, cvFile = null) => {
     try {
       setUpdating(true);
       setError(null);
       setSuccessMessage(null);
 
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         throw new Error("Sesi login tidak valid. Silakan logout lalu login kembali.");
       }
 
       let photoUrl = formData.photo_url;
+      let cvUrl = formData.cv_url; // Ambil dari form (bisa URL lama, atau null jika dihapus)
+      
       const oldPhotoUrl = profile?.photo_url;
+      const oldCvUrl = profile?.cv_url;
 
       // 1. Upload file baru terlebih dahulu (jika ada)
       if (imageFile) {
         photoUrl = await uploadImage(imageFile);
+      }
+      if (cvFile) {
+        cvUrl = await uploadCV(cvFile);
+      } else if (formData.cv_url === null || formData.cv_url === "") {
+        cvUrl = null; // User secara eksplisit menghapus CV
       }
 
       // 2. Prepare data dasar untuk database (Bahasa Indonesia)
@@ -166,6 +229,7 @@ export function useProfile() {
         full_name: formData.full_name,
         bio: formData.bio,
         photo_url: photoUrl,
+        cv_url: cvUrl, // 🆕 BARU: Simpan URL CV
         role: formData.role,
         top_skills: formData.top_skills || [],
         social_links: (formData.social_links || []).map((link) => ({
@@ -176,8 +240,7 @@ export function useProfile() {
         updated_at: new Date().toISOString(),
       };
 
-      // 🆕 BARU: 3. AUTO-TRANSLATE field teks utama ke Bahasa Inggris
-      // Kita gunakan Promise.all agar proses translate berjalan paralel (lebih cepat)
+      // 3. AUTO-TRANSLATE field teks utama ke Bahasa Inggris (Paralel)
       const [full_name_en, bio_en, role_en] = await Promise.all([
         translateToEnglish(baseData.full_name),
         translateToEnglish(baseData.bio),
@@ -187,7 +250,7 @@ export function useProfile() {
       // 4. Gabungkan data ID dan data EN
       const finalData = {
         ...baseData,
-        full_name_en, // Akan jadi null jika API gagal (aman, frontend akan fallback ke ID)
+        full_name_en,
         bio_en,
         role_en,
       };
@@ -201,7 +264,6 @@ export function useProfile() {
           .single();
 
         if (error) throw error;
-
         setProfile(data);
         setSuccessMessage("Profile berhasil dibuat dan diterjemahkan!");
       } else {
@@ -213,14 +275,19 @@ export function useProfile() {
           .single();
 
         if (error) throw error;
-
         setProfile(data);
         setSuccessMessage("Profile berhasil diperbarui dan diterjemahkan!");
       }
 
       // 6. Hapus file lama HANYA JIKA update database berhasil (Best Effort)
-      if (imageFile && oldPhotoUrl && oldPhotoUrl !== photoUrl) {
+      const imageChanged = (imageFile !== null || photoUrl === null) && oldPhotoUrl && oldPhotoUrl !== photoUrl;
+      if (imageChanged) {
         deleteOldImage(oldPhotoUrl);
+      }
+
+      const cvChanged = (cvFile !== null || cvUrl === null) && oldCvUrl && oldCvUrl !== cvUrl;
+      if (cvChanged) {
+        deleteOldCV(oldCvUrl);
       }
 
       return true;
@@ -240,7 +307,7 @@ export function useProfile() {
   };
 
   // ============================================
-  // 5. UPDATE AVAILABILITY STATUS
+  // 7. UPDATE AVAILABILITY STATUS
   // ============================================
   const updateAvailability = async (isActive) => {
     if (!profile) return false;
@@ -262,9 +329,7 @@ export function useProfile() {
 
       setProfile({ ...profile, is_active: isActive });
       setSuccessMessage(
-        isActive
-          ? "Status availability diaktifkan."
-          : "Status availability dinonaktifkan."
+        isActive ? "Status availability diaktifkan." : "Status availability dinonaktifkan."
       );
       return true;
     } catch (err) {
@@ -277,7 +342,7 @@ export function useProfile() {
   };
 
   // ============================================
-  // 6. CLEAR MESSAGES
+  // 8. CLEAR MESSAGES
   // ============================================
   const clearMessages = () => {
     setError(null);

@@ -23,6 +23,8 @@ my-project
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── skills
 │   │   │   │   │   └── page.js
+│   │   │   │   ├── spectrum
+│   │   │   │   │   └── page.js
 │   │   │   │   └── page.js
 │   │   │   └── auth
 │   │   │       ├── layout.js
@@ -34,12 +36,15 @@ my-project
 │   │   │   │   └── page.js
 │   │   │   ├── home
 │   │   │   │   └── components
+│   │   │   │       ├── CustomCursor.jsx
 │   │   │   │       ├── LanguageToggle.jsx
+│   │   │   │       ├── MiniPlayer.jsx
 │   │   │   │       ├── Section1Profile.jsx
 │   │   │   │       ├── Section2Skills.jsx
 │   │   │   │       ├── Section3Education.jsx
 │   │   │   │       ├── Section4Experiences.jsx
 │   │   │   │       ├── Section5Projects.jsx
+│   │   │   │       ├── SpectrumBackground.jsx
 │   │   │   │       └── ThemeToggle.jsx
 │   │   │   ├── projects
 │   │   │   │   └── page.js
@@ -47,6 +52,7 @@ my-project
 │   │   │   │   └── page.js
 │   │   │   ├── test-connection
 │   │   │   │   └── page.js
+│   │   │   ├── ActiveSongSection.js
 │   │   │   ├── error.js
 │   │   │   ├── layout.js
 │   │   │   └── page.js
@@ -72,7 +78,8 @@ my-project
 │   │   │   ├── useHomeOrder.js
 │   │   │   ├── useProfile.js
 │   │   │   ├── useProjects.js
-│   │   │   └── useSkills.js
+│   │   │   ├── useSkills.js
+│   │   │   └── useSpectrum.js
 │   │   └── public
 │   │       └── useTheme.js
 │   └── lib

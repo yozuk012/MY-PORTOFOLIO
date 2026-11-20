@@ -7,6 +7,7 @@ import {
   FaPlus,
   FaUpload,
   FaImage,
+  FaFilePdf,
   FaGithub,
   FaLinkedin,
   FaInstagram,
@@ -414,10 +415,12 @@ export function FileUpload({
   required = false,
   error,
   helpText,
+  accept = "image/*",
 }) {
   const fileInputRef = useRef(null);
   const [preview, setPreview] = useState(value || null);
   const [isDragging, setIsDragging] = useState(false);
+  const isPdf = accept.includes("pdf");
 
   useEffect(() => {
     setPreview(value || null);
@@ -426,6 +429,9 @@ export function FileUpload({
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (isPdf && file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        return;
+      }
       const objectUrl = URL.createObjectURL(file);
       setPreview(objectUrl);
       onChange(file, objectUrl);
@@ -436,7 +442,7 @@ export function FileUpload({
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file && (!isPdf ? file.type.startsWith("image/") : file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))) {
       const objectUrl = URL.createObjectURL(file);
       setPreview(objectUrl);
       onChange(file, objectUrl);
@@ -471,35 +477,46 @@ export function FileUpload({
               : "border-border/40 hover:border-accent/50 bg-surface/30"
           }`}
         >
-          <FaImage className="w-8 h-8 text-text-muted/40 mx-auto mb-3" />
+          {isPdf ? (
+            <FaFilePdf className="w-8 h-8 text-text-muted/40 mx-auto mb-3" />
+          ) : (
+            <FaImage className="w-8 h-8 text-text-muted/40 mx-auto mb-3" />
+          )}
           <p className="text-xs font-mono text-text-main mb-1">
             <span className="text-accent">Klik untuk upload</span> atau drag & drop
           </p>
           <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted/50">
-            PNG · JPG · WEBP · Maks 5MB
+            {isPdf ? "PDF · Maks 5MB" : "PNG · JPG · WEBP · Maks 5MB"}
           </p>
           <input
             ref={fileInputRef}
             id={name}
             name={name}
             type="file"
-            accept="image/*"
+            accept={accept}
             onChange={handleFileChange}
             className="hidden"
           />
         </div>
       ) : (
         <div className="relative group">
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-full h-48 object-cover rounded-lg border border-border/40"
-          />
+          {isPdf ? (
+            <div className="w-full h-48 rounded-lg border border-border/40 flex flex-col items-center justify-center gap-3 bg-surface/40">
+              <FaFilePdf className="w-12 h-12 text-accent" />
+              <span className="text-xs font-mono text-text-muted">Dokumen PDF siap diupload</span>
+            </div>
+          ) : (
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-full h-48 object-cover rounded-lg border border-border/40"
+            />
+          )}
           <button
             type="button"
             onClick={handleRemove}
             className="absolute top-2 right-2 p-2 bg-red-500/90 hover:bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
-            aria-label="Hapus gambar"
+            aria-label={isPdf ? "Hapus PDF" : "Hapus gambar"}
           >
             <FaTimes className="w-3.5 h-3.5" />
           </button>
@@ -515,7 +532,7 @@ export function FileUpload({
             id={name}
             name={name}
             type="file"
-            accept="image/*"
+            accept={accept}
             onChange={handleFileChange}
             className="hidden"
           />

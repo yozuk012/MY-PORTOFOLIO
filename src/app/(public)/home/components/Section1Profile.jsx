@@ -17,6 +17,7 @@ import {
   FaMapMarkerAlt,
   FaUser,
   FaArrowRight,
+  FaDownload, // 🆕 BARU: Ikon untuk Download CV
 } from "react-icons/fa";
 
 // Import dictionary lokal
@@ -44,15 +45,16 @@ export default async function Section1Profile() {
 
   const supabase = await createClient();
 
-  // 2. Fetch data termasuk kolom _en
+  // 2. Fetch data termasuk kolom cv_url 🆕 BARU
   let profile = null;
   const { data: profileData, error: profileError } = await supabase
     .from("profile")
     .select(
-      "full_name, full_name_en, bio, bio_en, role, role_en, top_skills, social_links, is_active, photo_url"
+      "full_name, full_name_en, bio, bio_en, role, role_en, top_skills, social_links, is_active, photo_url, cv_url"
     )
     .limit(1)
     .single();
+    
   if (!profileError || profileError.code === "PGRST116") profile = profileData;
 
   const { data: topScoredSkills } = await supabase
@@ -186,7 +188,7 @@ export default async function Section1Profile() {
       {/* ===== Grid bawah: META (kiri) + BIO & CTA (kanan) ===== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
         {/* Kolom kiri: Meta */}
-        <div className="space-y-5">
+        <div className="space-y-6">
           <div>
             <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-1.5">
               {t("labels.location")}
@@ -217,33 +219,55 @@ export default async function Section1Profile() {
           )}
 
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-2">
-              {t("labels.connect")}
-            </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {profile?.social_links?.length > 0 ? (
-                profile.social_links.map((link, i) => (
-                  <a
-                    key={i}
-                    href={formatUrl(link.platform, link.url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors"
-                  >
-                    {getIcon(link.platform)}
-                    <span>{getLabel(link.platform)}</span>
-                  </a>
-                ))
-              ) : (
+          <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-3">
+            {t("labels.connect")}
+          </p>
+
+          <ul className="space-y-2">
+            {/* 1. Social Links */}
+            {profile?.social_links?.map((link, i) => (
+              <li key={i}>
+                <a
+                  href={formatUrl(link.platform, link.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-accent transition-colors"
+                >
+                  {getIcon(link.platform)}
+                  <span>{getLabel(link.platform)}</span>
+                </a>
+              </li>
+            ))}
+
+            {/* 2. Download CV (muncul hanya jika cv_url ada) */}
+            {profile?.cv_url && (
+              <li>
+                <a
+                  href={profile.cv_url}
+                  download
+                  className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-accent transition-colors group"
+                >
+                  <FaDownload className="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform duration-200" />
+                  <span className="group-hover:underline decoration-accent/50 underline-offset-4">
+                    {lang === "en" ? "Download CV" : "Unduh CV"}
+                  </span>
+                </a>
+              </li>
+            )}
+
+            {/* Fallback jika belum ada social link maupun CV */}
+            {!profile?.social_links?.length && !profile?.cv_url && (
+              <li>
                 <a
                   href="mailto:achmad@example.com"
-                  className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-accent transition-colors"
+                  className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-accent transition-colors"
                 >
                   <FaEnvelope className="w-3.5 h-3.5" /> Email
                 </a>
-              )}
-            </div>
-          </div>
+              </li>
+            )}
+          </ul>
+        </div>
         </div>
 
         {/* Kolom kanan: Bio & CTA Link */}

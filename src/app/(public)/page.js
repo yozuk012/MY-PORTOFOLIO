@@ -1,4 +1,4 @@
-// src/app/page.js
+// src/app/(public)/page.js
 import { Suspense } from "react";
 import Section1Profile from "./home/components/Section1Profile";
 import Section2Skills from "./home/components/Section2Skills";
@@ -6,10 +6,13 @@ import Section3Education from "./home/components/Section3Education";
 import Section4Experiences from "./home/components/Section4Experiences";
 import Section5Projects from "./home/components/Section5Projects";
 
+// [DEBUG] export const instant = false;  <-- dimatikan sementara
+
 export default function HomePage() {
+  // Catatan: <main> sudah ada di (public)/layout.js, jadi di sini pakai <div>
+  // agar tidak terjadi <main> bersarang (HTML tidak valid).
   return (
-    <main className="min-h-screen">
-      
+    <div className="min-h-screen">
       {/* ============================================ */}
       {/* SECTION 1: PROFILE                           */}
       {/* ============================================ */}
@@ -50,6 +53,9 @@ export default function HomePage() {
                 <div className="space-y-2">
                   <div className="h-3 w-16 rounded bg-surface" />
                   <div className="h-4 w-20 rounded bg-surface" />
+                  <div className="h-4 w-20 rounded bg-surface" />
+                  <div className="h-4 w-20 rounded bg-surface" />
+                  <div className="h-4 w-24 rounded bg-surface" />
                 </div>
               </div>
               <div className="md:col-span-2 space-y-2">
@@ -235,7 +241,6 @@ export default function HomePage() {
         </div>
         <div className="h-10 md:h-0"></div>
       </footer>
-
-    </main>
+    </div>
   );
 }

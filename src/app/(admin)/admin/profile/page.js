@@ -16,9 +16,10 @@ import BackButton from "../components/BackButton";
 import {
   FaUserCircle,
   FaSpinner,
-  FaMapMarkerAlt,
   FaCheck,
   FaExclamationTriangle,
+  FaFilePdf,
+  FaDownload,
 } from "react-icons/fa";
 
 export default function ManageProfilePage() {
@@ -36,12 +37,15 @@ export default function ManageProfilePage() {
     full_name: "",
     bio: "",
     photo_url: "",
+    cv_url: "", // 🆕 BARU: Field untuk URL CV
     role: "",
     top_skills: [],
     social_links: [],
     is_active: true,
   });
+  
   const [imageFile, setImageFile] = useState(null);
+  const [cvFile, setCvFile] = useState(null); // 🆕 BARU: State untuk file CV
 
   useEffect(() => {
     if (profile) {
@@ -49,6 +53,7 @@ export default function ManageProfilePage() {
         full_name: profile.full_name || "",
         bio: profile.bio || "",
         photo_url: profile.photo_url || "",
+        cv_url: profile.cv_url || "", // 🆕 BARU
         role: profile.role || "",
         top_skills: profile.top_skills || [],
         social_links: profile.social_links || [],
@@ -68,7 +73,10 @@ export default function ManageProfilePage() {
     return JSON.stringify(original) !== JSON.stringify(current);
   };
 
-  const dirtyFields = ["full_name", "bio", "role", "photo_url", "top_skills", "social_links", "is_active"].filter(isDirty);
+  // 🆕 BARU: Tambahkan cv_url ke daftar field yang dicek
+  const dirtyFields = [
+    "full_name", "bio", "role", "photo_url", "cv_url", "top_skills", "social_links", "is_active"
+  ].filter(isDirty);
 
   // ============================================
   // HANDLERS
@@ -94,10 +102,20 @@ export default function ManageProfilePage() {
     setFormData((prev) => ({ ...prev, photo_url: previewUrl || "" }));
   };
 
+  // 🆕 BARU: Handler khusus untuk upload CV
+  const handleCVFileChange = (file, previewUrl) => {
+    setCvFile(file);
+    setFormData((prev) => ({ ...prev, cv_url: previewUrl || "" }));
+  };
+
   const handleSubmit = async () => {
     clearMessages();
-    const updated = await updateProfile(formData, imageFile);
-    if (updated) setImageFile(null);
+    // 🆕 BARU: Kirim cvFile sebagai argumen ke-3
+    const updated = await updateProfile(formData, imageFile, cvFile);
+    if (updated) {
+      setImageFile(null);
+      setCvFile(null); // 🆕 BARU: Reset state file setelah berhasil
+    }
   };
 
   const handleDiscard = () => {
@@ -106,12 +124,14 @@ export default function ManageProfilePage() {
       full_name: profile.full_name || "",
       bio: profile.bio || "",
       photo_url: profile.photo_url || "",
+      cv_url: profile.cv_url || "", // 🆕 BARU
       role: profile.role || "",
       top_skills: profile.top_skills || [],
       social_links: profile.social_links || [],
       is_active: profile.is_active ?? true,
     });
     setImageFile(null);
+    setCvFile(null); // 🆕 BARU
     clearMessages();
   };
 
@@ -121,7 +141,7 @@ export default function ManageProfilePage() {
     return found?.icon || FaUserCircle;
   };
 
-  // ✅ Helper untuk format link di preview card
+  // Helper untuk format link di preview card
   const formatUrl = (platform, url) => {
     if (!url) return "#";
     const key = platform?.toLowerCase().trim();
@@ -164,7 +184,7 @@ export default function ManageProfilePage() {
           </h1>
         </div>
         <p className="text-sm md:text-base text-text-muted max-w-2xl">
-          Kelola informasi utama, bio, dan link sosial yang tampil di halaman utama portofolio.
+          Kelola informasi utama, bio, link sosial, dan file CV yang tampil di halaman utama portofolio.
         </p>
       </div>
 
@@ -264,7 +284,6 @@ export default function ManageProfilePage() {
                       return (
                         <a
                           key={i}
-                          // ✅ FIX: Gunakan formatUrl agar preview link email/website valid
                           href={formatUrl(link.platform, link.url)}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -276,6 +295,24 @@ export default function ManageProfilePage() {
                       );
                     })}
                   </div>
+                )}
+              </div>
+
+              {/* 🆕 BARU: Preview Status CV */}
+              <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-2">
+                {profile.cv_url ? (
+                  <a 
+                    href={profile.cv_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-[10px] font-mono text-accent hover:underline flex items-center gap-1.5 transition-colors"
+                  >
+                    <FaFilePdf className="w-3 h-3" /> Lihat CV yang aktif saat ini
+                  </a>
+                ) : (
+                  <span className="text-[10px] font-mono text-text-muted/40 italic flex items-center gap-1.5">
+                    <FaFilePdf className="w-3 h-3" /> Belum ada CV diupload
+                  </span>
                 )}
               </div>
             </div>
@@ -303,15 +340,25 @@ export default function ManageProfilePage() {
       <div className="bg-surface/30 border border-border/40 rounded-xl p-6 sm:p-8">
         <Form onSubmit={handleSubmit} isLoading={updating} className="space-y-8">
 
-          {/* BAGIAN 1: Foto & Info Dasar */}
+          {/* BAGIAN 1: Foto & Dokumen (CV) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-1">
+            <div className="md:col-span-1 space-y-6">
               <FileUpload
                 label="Foto Profile"
                 name="photo"
                 value={formData.photo_url}
                 onChange={handleFileChange}
                 helpText="PNG, JPG, WEBP (Maks. 5MB)"
+              />
+              
+              {/* 🆕 BARU: Upload CV */}
+              <FileUpload
+                label="Curriculum Vitae (CV)"
+                name="cv"
+                value={formData.cv_url}
+                onChange={handleCVFileChange}
+                accept="application/pdf,.pdf"
+                helpText="Format PDF saja (Maks. 5MB). Kosongkan untuk menghapus CV lama."
               />
             </div>
 
