@@ -54,7 +54,6 @@ async function PageHeader() {
   const lang = cookieStore.get("lang")?.value || "id";
   const t = (path) =>
     path.split(".").reduce((o, i) => o?.[i], getDict(lang)) || path;
-
   return (
     <div className="mb-16">
       <a

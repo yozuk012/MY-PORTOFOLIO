@@ -23,7 +23,8 @@ export default function LanguageToggle() {
   };
 
   return (
-    <div className="fixed top-5 right-5 z-50 flex rounded-full border border-border/60 bg-surface/70 p-1 shadow-sm backdrop-blur-md">
+    // ⬇️ Positioning `fixed top-5 right-5 z-50` dihapus
+    <div className="flex rounded-full border border-border/60 bg-surface/70 p-1 shadow-sm backdrop-blur-md">
       {['id', 'en'].map((code) => (
         <button
           key={code}

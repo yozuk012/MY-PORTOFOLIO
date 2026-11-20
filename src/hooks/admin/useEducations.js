@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/client";
-// 🆕 BARU: Import fungsi translate
 import { translateToEnglish } from "@/lib/translate";
 
 const getErrorMessage = (error, fallbackMessage) => {
@@ -19,11 +18,12 @@ export function useEducations() {
   const [educations, setEducations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null); // Menyimpan ID yang sedang dihapus
+  const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const supabase = createClient();
+  // ✅ FIX: Gunakan useMemo agar client tidak dibuat ulang setiap render
+  const supabase = useMemo(() => createClient(), []);
 
   // ============================================
   // 1. FETCH ALL EDUCATIONS
@@ -47,10 +47,10 @@ export function useEducations() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   // ============================================
-  // 2. CREATE EDUCATION + AUTO TRANSLATE
+  // 2. CREATE EDUCATION + AUTO TRANSLATE + MAJOR
   // ============================================
   const createEducation = async (formData) => {
     try {
@@ -58,11 +58,12 @@ export function useEducations() {
       setError(null);
       setSuccessMessage(null);
 
-      // 🆕 BARU: Auto-translate text fields secara paralel (lebih cepat)
-      const [institution_en, degree_en, description_en] = await Promise.all([
+      // 🆕 BARU: Tambahkan major ke dalam auto-translate paralel
+      const [institution_en, degree_en, description_en, major_en] = await Promise.all([
         translateToEnglish(formData.institution),
         translateToEnglish(formData.degree),
         translateToEnglish(formData.description),
+        translateToEnglish(formData.major || ""),
       ]);
 
       const { data, error } = await supabase
@@ -70,13 +71,16 @@ export function useEducations() {
         .insert([
           {
             institution: formData.institution,
-            institution_en: institution_en, // 🆕 Simpan hasil translate
+            institution_en: institution_en,
             start_year: parseInt(formData.start_year),
             end_year: formData.end_year ? parseInt(formData.end_year) : null,
             degree: formData.degree,
-            degree_en: degree_en, // 🆕 Simpan hasil translate
+            degree_en: degree_en,
+            // 🆕 BARU: Field Jurusan
+            major: formData.major || null,
+            major_en: major_en || null,
             description: formData.description,
-            description_en: description_en, // 🆕 Simpan hasil translate
+            description_en: description_en,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -86,7 +90,6 @@ export function useEducations() {
 
       if (error) throw error;
 
-      // Tambahkan data baru ke state (atau fetch ulang)
       setEducations((prev) => [data, ...prev]);
       setSuccessMessage("Data edukasi berhasil ditambahkan dan diterjemahkan!");
       return true;
@@ -106,7 +109,7 @@ export function useEducations() {
   };
 
   // ============================================
-  // 3. UPDATE EDUCATION + AUTO TRANSLATE
+  // 3. UPDATE EDUCATION + AUTO TRANSLATE + MAJOR
   // ============================================
   const updateEducation = async (id, formData) => {
     try {
@@ -114,24 +117,28 @@ export function useEducations() {
       setError(null);
       setSuccessMessage(null);
 
-      // 🆕 BARU: Auto-translate text fields secara paralel
-      const [institution_en, degree_en, description_en] = await Promise.all([
+      // 🆕 BARU: Tambahkan major ke dalam auto-translate paralel
+      const [institution_en, degree_en, description_en, major_en] = await Promise.all([
         translateToEnglish(formData.institution),
         translateToEnglish(formData.degree),
         translateToEnglish(formData.description),
+        translateToEnglish(formData.major || ""),
       ]);
 
       const { data, error } = await supabase
         .from("educations")
         .update({
           institution: formData.institution,
-          institution_en: institution_en, // 🆕 Update hasil translate
+          institution_en: institution_en,
           start_year: parseInt(formData.start_year),
           end_year: formData.end_year ? parseInt(formData.end_year) : null,
           degree: formData.degree,
-          degree_en: degree_en, // 🆕 Update hasil translate
+          degree_en: degree_en,
+          // 🆕 BARU: Field Jurusan
+          major: formData.major || null,
+          major_en: major_en || null,
           description: formData.description,
-          description_en: description_en, // 🆕 Update hasil translate
+          description_en: description_en,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -140,7 +147,6 @@ export function useEducations() {
 
       if (error) throw error;
 
-      // Update state
       setEducations((prev) => prev.map((edu) => (edu.id === id ? data : edu)));
       setSuccessMessage("Data edukasi berhasil diperbarui dan diterjemahkan!");
       return true;
@@ -175,7 +181,6 @@ export function useEducations() {
 
       if (error) throw error;
 
-      // Hapus dari state
       setEducations((prev) => prev.filter((edu) => edu.id !== id));
       setSuccessMessage("Data edukasi berhasil dihapus!");
       return true;
@@ -216,6 +221,7 @@ export function useEducations() {
     deletingId,
     error,
     successMessage,
+    fetchEducations,
     createEducation,
     updateEducation,
     deleteEducation,

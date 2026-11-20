@@ -1,4 +1,3 @@
-// src/app/(admin)/admin/education/page.js
 "use client";
 
 import { useState } from "react";
@@ -19,7 +18,7 @@ import {
 import Button from "../components/Button";
 import BackButton from "../components/BackButton";
 
-import { FaPlus, FaGraduationCap, FaTimes } from "react-icons/fa";
+import { FaPlus, FaGraduationCap, FaTimes, FaBookOpen } from "react-icons/fa";
 
 export default function ManageEducationPage() {
   const {
@@ -41,6 +40,7 @@ export default function ManageEducationPage() {
   const [formData, setFormData] = useState({
     institution: "",
     degree: "",
+    major: "", // 🆕 BARU: Field Jurusan
     start_year: "",
     end_year: "",
     description: "",
@@ -55,6 +55,7 @@ export default function ManageEducationPage() {
     setFormData({
       institution: "",
       degree: "",
+      major: "", // 🆕 BARU
       start_year: "",
       end_year: "",
       description: "",
@@ -68,6 +69,7 @@ export default function ManageEducationPage() {
     setFormData({
       institution: edu.institution || "",
       degree: edu.degree || "",
+      major: edu.major || "", // 🆕 BARU
       start_year: edu.start_year || "",
       end_year: edu.end_year || "",
       description: edu.description || "",
@@ -127,7 +129,7 @@ export default function ManageEducationPage() {
               </h1>
             </div>
             <p className="text-sm md:text-base text-text-muted max-w-2xl">
-              Kelola riwayat pendidikan dan jenjang akademik Anda.
+              Kelola riwayat pendidikan, jenjang akademik, dan jurusan Anda.
             </p>
           </div>
 
@@ -187,7 +189,7 @@ export default function ManageEducationPage() {
                 type="text"
                 value={formData.institution}
                 onChange={handleChange}
-                placeholder="Contoh: Universitas Indonesia"
+                placeholder="Contoh: Politeknik Negeri Banyuwangi"
                 required
               />
 
@@ -213,13 +215,24 @@ export default function ManageEducationPage() {
                 required
               />
 
+              {/* 🆕 BARU: Field Jurusan */}
+              <FormField
+                label="Jurusan / Program Studi"
+                name="major"
+                type="text"
+                value={formData.major}
+                onChange={handleChange}
+                placeholder="Contoh: Manajemen Informatika, Teknik Komputer"
+                helpText="Opsional, tapi sangat disarankan agar mudah dibaca."
+              />
+
               <FormField
                 label="Tahun Masuk"
                 name="start_year"
                 type="number"
                 value={formData.start_year}
                 onChange={handleChange}
-                placeholder="2020"
+                placeholder="2021"
                 required
               />
 
@@ -239,7 +252,7 @@ export default function ManageEducationPage() {
               type="textarea"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Jurusan apa, prestasi, atau kegiatan utama..."
+              placeholder="Prestasi, organisasi, atau kegiatan utama selama pendidikan..."
               rows={3}
             />
 
@@ -268,7 +281,7 @@ export default function ManageEducationPage() {
             <TableHeader
               columns={[
                 { label: "No", width: "60px" },
-                { label: "Institusi & Deskripsi" },
+                { label: "Institusi & Jurusan" },
                 { label: "Jenjang", width: "120px" },
                 { label: "Periode", width: "150px" },
                 { label: "Aksi", width: "150px" },
@@ -282,16 +295,27 @@ export default function ManageEducationPage() {
                     {String(index + 1).padStart(2, "0")}
                   </TableCell>
 
-                  {/* Institusi & Deskripsi */}
+                  {/* Institusi & Jurusan */}
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-1">
                       <FaGraduationCap className="w-3.5 h-3.5 text-accent flex-shrink-0" />
                       <span className="font-medium text-text-main text-sm">
                         {edu.institution}
                       </span>
                     </div>
+                    
+                    {/* 🆕 BARU: Tampilkan Jurusan dengan style yang menonjol */}
+                    {edu.major && (
+                      <div className="flex items-center gap-1.5 mb-1.5 ml-5.5">
+                        <FaBookOpen className="w-3 h-3 text-text-muted/60" />
+                        <span className="text-sm font-medium text-accent/90 dark:text-accent">
+                          {edu.major}
+                        </span>
+                      </div>
+                    )}
+
                     {edu.description && (
-                      <div className="text-xs text-text-muted/80 mt-1 line-clamp-2 max-w-md ml-5.5">
+                      <div className="text-xs text-text-muted/80 line-clamp-2 max-w-md ml-5.5">
                         {edu.description}
                       </div>
                     )}

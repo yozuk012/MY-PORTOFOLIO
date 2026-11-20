@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/client";
-// 🆕 BARU: Import fungsi translate
 import { translateToEnglish } from "@/lib/translate";
 
 // ============================================
@@ -16,10 +15,10 @@ export function useProjects() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [syncingId, setSyncingId] = useState(null); // 🆕 State untuk loading saat sync GitHub
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  // ✅ FIX: Gunakan useMemo agar client tidak dibuat ulang setiap render
   const supabase = useMemo(() => createClient(), []);
 
   // ============================================
@@ -47,7 +46,7 @@ export function useProjects() {
   }, [supabase]);
 
   // ============================================
-  // 2. UPLOAD IMAGE TO STORAGE (STABIL: NAMA BARU)
+  // 2. UPLOAD IMAGE TO STORAGE
   // ============================================
   const uploadImage = async (file) => {
     if (!file) return null;
@@ -61,7 +60,7 @@ export function useProjects() {
         .from(BUCKET_NAME)
         .upload(filePath, file, {
           cacheControl: "3600",
-          upsert: false, // ✅ Murni INSERT, menghindari bug RLS upsert
+          upsert: false,
           contentType: file.type,
         });
 
@@ -79,7 +78,7 @@ export function useProjects() {
   };
 
   // ============================================
-  // 3. DELETE IMAGE (BEST EFFORT / FIRE-AND-FORGET)
+  // 3. DELETE IMAGE (BEST EFFORT)
   // ============================================
   const deleteImage = async (imageUrl) => {
     if (!imageUrl) return;
@@ -101,29 +100,25 @@ export function useProjects() {
 
       filePath = decodeURIComponent(filePath).trim();
 
-      // SAFEGUARD: Pastikan hanya menghapus file di dalam folder projects
       if (!filePath || !filePath.startsWith(`${PROJECT_FOLDER}/`)) {
-        console.warn("⛔ [deleteImage] Path tidak valid atau di luar folder projects:", filePath);
+        console.warn("⛔ [deleteImage] Path tidak valid:", filePath);
         return;
       }
 
-      // ✅ BEST EFFORT: Coba hapus, tapi JANGAN throw error atau blokir UI.
       const { error } = await supabase.storage
         .from(BUCKET_NAME)
         .remove([filePath]);
 
       if (error) {
-        console.warn("⚠️ [deleteImage] Gagal menghapus gambar lama (Best Effort):", error.message);
-      } else {
-        console.log("✅ [deleteImage] Berhasil dihapus:", filePath);
+        console.warn("⚠️ [deleteImage] Gagal menghapus gambar lama:", error.message);
       }
     } catch (err) {
-      console.warn("⚠️ [deleteImage] Exception saat menghapus:", err);
+      console.warn("⚠️ [deleteImage] Exception:", err);
     }
   };
 
   // ============================================
-  // 4. CREATE PROJECT + AUTO TRANSLATE
+  // 4. CREATE PROJECT + AUTO TRANSLATE + GITHUB FIELDS
   // ============================================
   const createProject = async (formData, imageFile = null) => {
     try {
@@ -136,7 +131,6 @@ export function useProjects() {
         imageUrl = await uploadImage(imageFile);
       }
 
-      // 🆕 BARU: Auto-translate text fields secara paralel (lebih cepat)
       const [title_en, description_en, status_en] = await Promise.all([
         translateToEnglish(formData.title),
         translateToEnglish(formData.description),
@@ -148,14 +142,23 @@ export function useProjects() {
         .insert([
           {
             title: formData.title,
-            title_en: title_en, // 🆕 Simpan hasil translate
+            title_en: title_en,
             description: formData.description,
-            description_en: description_en, // 🆕 Simpan hasil translate
+            description_en: description_en,
             status: formData.status,
-            status_en: status_en, // 🆕 Simpan hasil translate
+            status_en: status_en,
             demo_url: formData.demo_url || null,
             tech_tags: formData.tech_tags || [],
             image_url: imageUrl,
+            // 🆕 BARU: Field Integrasi GitHub
+            source: formData.source || "manual",
+            github_repo: formData.github_repo || null,
+            github_stars: formData.github_stars || 0,
+            github_last_synced: formData.github_last_synced || new Date().toISOString(),
+            // 🆕 BARU: Field Homepage Order (jika ada di form)
+            show_on_home: formData.show_on_home || false,
+            home_order: formData.home_order || 999,
+            
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -164,13 +167,12 @@ export function useProjects() {
         .single();
 
       if (error) {
-        // Rollback: Coba hapus gambar jika insert ke database gagal (Best Effort)
         if (imageUrl) deleteImage(imageUrl);
         throw error;
       }
 
       setProjects((prev) => [data, ...prev]);
-      setSuccessMessage("Project berhasil ditambahkan dan diterjemahkan!");
+      setSuccessMessage("Project berhasil ditambahkan!");
       return true;
     } catch (err) {
       console.error("Error creating project:", err);
@@ -182,7 +184,7 @@ export function useProjects() {
   };
 
   // ============================================
-  // 5. UPDATE PROJECT + AUTO TRANSLATE
+  // 5. UPDATE PROJECT + AUTO TRANSLATE + GITHUB FIELDS
   // ============================================
   const updateProject = async (id, formData, imageFile = null) => {
     try {
@@ -190,21 +192,13 @@ export function useProjects() {
       setError(null);
       setSuccessMessage(null);
 
-      // Ambil gambar lama dari DB
-      const { data: existingData, error: existingError } = await supabase
+      const { data: existingData } = await supabase
         .from("projects")
         .select("image_url")
         .eq("id", id)
         .maybeSingle();
 
-      if (existingError) {
-        console.warn("[updateProject] Gagal membaca gambar lama:", existingError);
-      }
-
-      const oldImageUrl =
-        existingData?.image_url ||
-        (typeof formData.image_url === "string" ? formData.image_url : null);
-
+      const oldImageUrl = existingData?.image_url || (typeof formData.image_url === "string" ? formData.image_url : null);
       let imageUrl = oldImageUrl;
       let newImageUrl = null;
 
@@ -215,26 +209,33 @@ export function useProjects() {
         imageUrl = null;
       }
 
-      // 🆕 BARU: Auto-translate text fields secara paralel
       const [title_en, description_en, status_en] = await Promise.all([
         translateToEnglish(formData.title),
         translateToEnglish(formData.description),
         translateToEnglish(formData.status),
       ]);
 
-      // Update DB (Ini yang utama)
       const { data, error } = await supabase
         .from("projects")
         .update({
           title: formData.title,
-          title_en: title_en, // 🆕 Update hasil translate
+          title_en: title_en,
           description: formData.description,
-          description_en: description_en, // 🆕 Update hasil translate
+          description_en: description_en,
           status: formData.status,
-          status_en: status_en, // 🆕 Update hasil translate
+          status_en: status_en,
           demo_url: formData.demo_url || null,
           tech_tags: formData.tech_tags || [],
           image_url: imageUrl,
+          // 🆕 BARU: Field Integrasi GitHub (bisa diupdate jika perlu)
+          source: formData.source || "manual",
+          github_repo: formData.github_repo || null,
+          github_stars: formData.github_stars !== undefined ? formData.github_stars : 0,
+          github_last_synced: formData.github_last_synced || new Date().toISOString(),
+          // 🆕 BARU: Field Homepage Order
+          show_on_home: formData.show_on_home || false,
+          home_order: formData.home_order || 999,
+          
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -242,30 +243,22 @@ export function useProjects() {
         .maybeSingle();
 
       if (error) {
-        // Rollback: Coba hapus gambar baru jika update database gagal
         if (newImageUrl) deleteImage(newImageUrl);
         throw error;
       }
 
       if (!data) {
         if (newImageUrl) deleteImage(newImageUrl);
-        throw new Error(
-          "Project tidak ditemukan atau sesi tidak memiliki izin untuk memperbarui project ini"
-        );
+        throw new Error("Project tidak ditemukan atau tidak memiliki izin.");
       }
 
-      // ✅ Hapus gambar lama di background (Best Effort / Fire-and-Forget)
-      const imageChanged =
-        (newImageUrl !== null || imageUrl === null) &&
-        oldImageUrl &&
-        oldImageUrl !== imageUrl;
-
+      const imageChanged = (newImageUrl !== null || imageUrl === null) && oldImageUrl && oldImageUrl !== imageUrl;
       if (imageChanged) {
         deleteImage(oldImageUrl); 
       }
 
       setProjects((prev) => prev.map((proj) => (proj.id === id ? data : proj)));
-      setSuccessMessage("Project berhasil diperbarui dan diterjemahkan!");
+      setSuccessMessage("Project berhasil diperbarui!");
       return true;
     } catch (err) {
       console.error("Error updating project:", err);
@@ -286,10 +279,8 @@ export function useProjects() {
       setSuccessMessage(null);
 
       const { error } = await supabase.from("projects").delete().eq("id", id);
-
       if (error) throw error;
 
-      // Hapus gambar dari storage di background (Best Effort)
       if (imageUrl) {
         deleteImage(imageUrl);
       }
@@ -307,7 +298,51 @@ export function useProjects() {
   };
 
   // ============================================
-  // 7. CLEAR MESSAGES
+  // 🆕 7. SYNC GITHUB METADATA (Refresh Stars/Info)
+  // ============================================
+  const syncGithubProject = async (id, githubRepoName) => {
+    try {
+      setSyncingId(id);
+      setError(null);
+      
+      // Memanggil API route Next.js untuk mengambil data terbaru dari GitHub
+      const response = await fetch(`/api/github/sync?repo=${encodeURIComponent(githubRepoName)}`);
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Gagal mengambil data dari GitHub");
+      }
+
+      // Update database dengan data terbaru
+      const { data, error } = await supabase
+        .from("projects")
+        .update({
+          github_stars: result.data.stargazers_count,
+          github_last_synced: new Date().toISOString(),
+          // Opsional: update tech_tags jika bahasa di GitHub berubah
+          tech_tags: result.data.topics.length > 0 ? result.data.topics : (result.data.language ? [result.data.language] : []),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProjects((prev) => prev.map((proj) => (proj.id === id ? data : proj)));
+      setSuccessMessage(`Metadata "${githubRepoName}" berhasil diperbarui!`);
+      return true;
+    } catch (err) {
+      console.error("Error syncing github project:", err);
+      setError(err.message || "Gagal menyinkronkan data GitHub");
+      return false;
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  // ============================================
+  // 8. CLEAR MESSAGES
   // ============================================
   const clearMessages = () => {
     setError(null);
@@ -326,12 +361,14 @@ export function useProjects() {
     loading,
     saving,
     deletingId,
+    syncingId, // 🆕 Export state syncing
     error,
     successMessage,
     fetchProjects,
     createProject,
     updateProject,
     deleteProject,
+    syncGithubProject, // 🆕 Export fungsi sync
     clearMessages,
   };
 }

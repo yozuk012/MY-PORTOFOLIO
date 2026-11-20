@@ -47,8 +47,16 @@ my-project
 │   │   │   │   └── page.js
 │   │   │   ├── test-connection
 │   │   │   │   └── page.js
+│   │   │   ├── error.js
 │   │   │   ├── layout.js
 │   │   │   └── page.js
+│   │   ├── api
+│   │   │   └── github
+│   │   │       ├── repos
+│   │   │       │   └── route.js
+│   │   │       └── sync
+│   │   │           └── route.js
+│   │   ├── global-error.js
 │   │   ├── globals.css
 │   │   ├── layout.js
 │   │   └── not-found.js

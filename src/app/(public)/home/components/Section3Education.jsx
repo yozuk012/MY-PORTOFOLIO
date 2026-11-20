@@ -29,7 +29,7 @@ export default async function Section3Education() {
   const { data: educations } = await supabase
     .from("educations")
     .select(
-      "institution, institution_en, degree, degree_en, start_year, end_year, description, description_en"
+      "institution, institution_en, major, major_en, degree, degree_en, start_year, end_year, description, description_en"
     )
     .order("start_year", { ascending: false });
 
@@ -71,15 +71,28 @@ export default async function Section3Education() {
                 </div>
 
                 {/* Kolom Kanan: Detail Institusi */}
-                <div className="md:col-span-9 space-y-2">
+                <div className="md:col-span-9 space-y-3">
+                  {/* 1. Nama Institusi */}
                   <h3 className="text-lg md:text-xl font-semibold text-text-main group-hover:text-accent transition-colors duration-300">
                     {getBilingual(lang, edu.institution, edu.institution_en)}
                   </h3>
-                  <p className="text-sm font-medium text-accent/80">
-                    {getBilingual(lang, edu.degree, edu.degree_en)}
-                  </p>
+                  
+                  {/* 🆕 2. Gelar (Depan) + Jurusan (Belakang) */}
+                  <div className="flex flex-wrap items-center gap-2.5 text-sm">
+                    {/* Badge Gelar */}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold uppercase tracking-wider text-accent bg-accent/10 border border-accent/20">
+                      {getBilingual(lang, edu.degree, edu.degree_en)}
+                    </span>
+                    
+                    {/* Teks Jurusan */}
+                    {getBilingual(lang, edu.major, edu.major_en) && (
+                      <span className="text-text-main font-medium">
+                        {getBilingual(lang, edu.major, edu.major_en)}
+                      </span>
+                    )}
+                  </div>
 
-                  {/* Deskripsi (Opsional) */}
+                  {/* 3. Deskripsi (Opsional, untuk detail tambahan) */}
                   {getBilingual(lang, edu.description, edu.description_en) && (
                     <p className="text-sm text-text-muted/80 leading-relaxed max-w-2xl pt-1">
                       {getBilingual(lang, edu.description, edu.description_en)}
