@@ -1,12 +1,25 @@
 // src/app/(public)/skills/page.js
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/server";
 import { FaArrowLeft } from "react-icons/fa";
 
+// Import dictionary lokal
+import idDict from "@/lib/dictionaries/id.json";
+import enDict from "@/lib/dictionaries/en.json";
+
+// Helper dictionary
+const getDict = (lang) => (lang === "en" ? enDict : idDict);
+
+// Fallback bilingual: jika EN kosong, pakai ID
+const getBilingual = (lang, idVal, enVal) =>
+  lang === "en" ? enVal || idVal : idVal;
+
 export const metadata = {
   title: "Skills | Achmad Aldino",
-  description: "Daftar lengkap keahlian teknis dan tingkat kemahiran saya.",
+  description:
+    "Daftar lengkap keahlian teknis dan tingkat kemahiran saya.",
 };
 
 // ============================================================
@@ -15,30 +28,12 @@ export const metadata = {
 export default function SkillsPage() {
   return (
     <main className="min-h-screen px-5 md:px-0 max-w-5xl mx-auto py-20 md:py-28">
-      {/* ===== HEADER (statis) ===== */}
-      <div className="mb-16">
-        <a
-          href="/"
-          className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors mb-8"
-        >
-          <FaArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-1" />
-          Back to Home
-        </a>
+      {/* HEADER — perlu cookies, dibungkus Suspense */}
+      <Suspense fallback={<HeaderSkeleton />}>
+        <PageHeader />
+      </Suspense>
 
-        <div className="flex items-baseline gap-4 mb-3">
-          <span className="text-xs font-mono text-accent tracking-widest">
-            02
-          </span>
-          <h1 className="text-4xl md:text-6xl font-bold text-text-main tracking-tighter">
-            All Skills
-          </h1>
-        </div>
-        <p className="text-base md:text-lg text-text-muted max-w-2xl">
-          Daftar lengkap keahlian teknis yang saya gunakan sehari-hari, diurutkan berdasarkan tingkat kemahiran (skor 1-10).
-        </p>
-      </div>
-
-      {/* ===== DYNAMIC (dibungkus Suspense, di-stream saat request) ===== */}
+      {/* CONTENT — fetch data, dibungkus Suspense */}
       <Suspense fallback={<SkillsSkeleton />}>
         <SkillsContent />
       </Suspense>
@@ -47,8 +42,58 @@ export default function SkillsPage() {
 }
 
 // ============================================================
-// FALLBACK SKELETON — muncul saat data sedang di-fetch
+// HEADER (dynamic — baca cookies + dictionary)
 // ============================================================
+async function PageHeader() {
+  // 🔑 Wajib: render per-request
+  await connection();
+
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value || "id";
+  const t = (path) =>
+    path.split(".").reduce((o, i) => o?.[i], getDict(lang)) || path;
+
+  return (
+    <div className="mb-16">
+      <a
+        href="/"
+        className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors mb-8"
+      >
+        <FaArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-1" />
+        {t("skills.backToHome")}
+      </a>
+
+      <div className="flex items-baseline gap-4 mb-3">
+        <span className="text-xs font-mono text-accent tracking-widest">
+          02
+        </span>
+        <h1 className="text-4xl md:text-6xl font-bold text-text-main tracking-tighter">
+          {t("skills.allSkills")}
+        </h1>
+      </div>
+      <p className="text-base md:text-lg text-text-muted max-w-2xl">
+        {t("skills.allSkillsDesc")}
+      </p>
+    </div>
+  );
+}
+
+// ============================================================
+// SKELETON FALLBACKS
+// ============================================================
+function HeaderSkeleton() {
+  return (
+    <div className="mb-16 animate-pulse">
+      <div className="h-4 w-32 rounded bg-surface mb-8" />
+      <div className="flex items-baseline gap-4 mb-3">
+        <div className="h-3 w-8 rounded bg-surface" />
+        <div className="h-12 md:h-16 w-56 md:w-72 rounded bg-surface" />
+      </div>
+      <div className="h-4 w-full max-w-2xl rounded bg-surface" />
+    </div>
+  );
+}
+
 function SkillsSkeleton() {
   return (
     <>
@@ -83,13 +128,19 @@ function SkillsSkeleton() {
 // DYNAMIC CONTENT — fetch data + render grid + footer
 // ============================================================
 async function SkillsContent() {
-  // ✅ connection() sekarang aman karena berada di dalam <Suspense>
+  // 🔑 Wajib: render per-request (hindari error Date.now())
   await connection();
+
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value || "id";
+  const t = (path) =>
+    path.split(".").reduce((o, i) => o?.[i], getDict(lang)) || path;
+
   const supabase = await createClient();
 
   const { data: skills } = await supabase
     .from("skills")
-    .select("name, score, description")
+    .select("name, name_en, score, description, description_en")
     .order("score", { ascending: false })
     .order("name", { ascending: true });
 
@@ -100,11 +151,9 @@ async function SkillsContent() {
     return (
       <>
         <div className="py-20 text-center">
-          <p className="text-text-muted italic">
-            Belum ada skill yang ditambahkan.
-          </p>
+          <p className="text-text-muted italic">{t("skills.empty")}</p>
         </div>
-        <SkillsFooter count={0} />
+        <SkillsFooter count={0} t={t} />
       </>
     );
   }
@@ -121,7 +170,7 @@ async function SkillsContent() {
             {/* Header Card: Nama & Skor */}
             <div className="flex items-baseline justify-between mb-4">
               <h2 className="text-xl font-semibold text-text-main group-hover:text-accent transition-colors duration-300">
-                {skill.name}
+                {getBilingual(lang, skill.name, skill.name_en)}
               </h2>
               <span className="text-sm font-mono font-medium text-accent bg-accent/10 px-2 py-0.5 rounded">
                 {skill.score}/10
@@ -138,32 +187,32 @@ async function SkillsContent() {
 
             {/* Deskripsi */}
             <p className="text-sm text-text-muted leading-relaxed flex-1">
-              {skill.description ||
-                "Tidak ada deskripsi yang ditambahkan untuk skill ini."}
+              {getBilingual(lang, skill.description, skill.description_en) ||
+                t("skills.noDescription")}
             </p>
           </article>
         ))}
       </div>
 
-      <SkillsFooter count={skillList.length} />
+      <SkillsFooter count={skillList.length} t={t} />
     </>
   );
 }
 
 // ============================================================
-// FOOTER — dijadikan komponen agar count tetap tersinkron
+// FOOTER
 // ============================================================
-function SkillsFooter({ count }) {
+function SkillsFooter({ count, t }) {
   return (
     <div className="mt-20 pt-8 border-t border-border/60 flex justify-between items-center">
       <span className="text-xs font-mono text-text-muted/60">
-        {count} SKILLS REGISTERED
+        {count} {t("skills.registered")}
       </span>
       <a
         href="/"
         className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors"
       >
-        Back to Home
+        {t("skills.backToHome")}
         <FaArrowLeft className="w-3 h-3 rotate-180 transition-transform duration-300 group-hover:translate-x-1" />
       </a>
     </div>

@@ -1,8 +1,9 @@
-// src/hooks/admin/useEducations.js
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/client";
+// 🆕 BARU: Import fungsi translate
+import { translateToEnglish } from "@/lib/translate";
 
 const getErrorMessage = (error, fallbackMessage) => {
   if (!error) return fallbackMessage;
@@ -49,7 +50,7 @@ export function useEducations() {
   }, []);
 
   // ============================================
-  // 2. CREATE EDUCATION
+  // 2. CREATE EDUCATION + AUTO TRANSLATE
   // ============================================
   const createEducation = async (formData) => {
     try {
@@ -57,15 +58,25 @@ export function useEducations() {
       setError(null);
       setSuccessMessage(null);
 
+      // 🆕 BARU: Auto-translate text fields secara paralel (lebih cepat)
+      const [institution_en, degree_en, description_en] = await Promise.all([
+        translateToEnglish(formData.institution),
+        translateToEnglish(formData.degree),
+        translateToEnglish(formData.description),
+      ]);
+
       const { data, error } = await supabase
         .from("educations")
         .insert([
           {
             institution: formData.institution,
+            institution_en: institution_en, // 🆕 Simpan hasil translate
             start_year: parseInt(formData.start_year),
             end_year: formData.end_year ? parseInt(formData.end_year) : null,
             degree: formData.degree,
+            degree_en: degree_en, // 🆕 Simpan hasil translate
             description: formData.description,
+            description_en: description_en, // 🆕 Simpan hasil translate
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -77,7 +88,7 @@ export function useEducations() {
 
       // Tambahkan data baru ke state (atau fetch ulang)
       setEducations((prev) => [data, ...prev]);
-      setSuccessMessage("Data edukasi berhasil ditambahkan!");
+      setSuccessMessage("Data edukasi berhasil ditambahkan dan diterjemahkan!");
       return true;
     } catch (err) {
       console.error("Error creating education:", {
@@ -95,7 +106,7 @@ export function useEducations() {
   };
 
   // ============================================
-  // 3. UPDATE EDUCATION
+  // 3. UPDATE EDUCATION + AUTO TRANSLATE
   // ============================================
   const updateEducation = async (id, formData) => {
     try {
@@ -103,14 +114,24 @@ export function useEducations() {
       setError(null);
       setSuccessMessage(null);
 
+      // 🆕 BARU: Auto-translate text fields secara paralel
+      const [institution_en, degree_en, description_en] = await Promise.all([
+        translateToEnglish(formData.institution),
+        translateToEnglish(formData.degree),
+        translateToEnglish(formData.description),
+      ]);
+
       const { data, error } = await supabase
         .from("educations")
         .update({
           institution: formData.institution,
+          institution_en: institution_en, // 🆕 Update hasil translate
           start_year: parseInt(formData.start_year),
           end_year: formData.end_year ? parseInt(formData.end_year) : null,
           degree: formData.degree,
+          degree_en: degree_en, // 🆕 Update hasil translate
           description: formData.description,
+          description_en: description_en, // 🆕 Update hasil translate
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -121,7 +142,7 @@ export function useEducations() {
 
       // Update state
       setEducations((prev) => prev.map((edu) => (edu.id === id ? data : edu)));
-      setSuccessMessage("Data edukasi berhasil diperbarui!");
+      setSuccessMessage("Data edukasi berhasil diperbarui dan diterjemahkan!");
       return true;
     } catch (err) {
       console.error("Error updating education:", {

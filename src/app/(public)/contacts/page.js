@@ -1,6 +1,7 @@
 // src/app/(public)/contacts/page.js
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/server";
 import {
   FaArrowLeft,
@@ -10,41 +11,31 @@ import {
   FaMapMarkerAlt,
 } from "react-icons/fa";
 
+// Import dictionary lokal
+import idDict from "@/lib/dictionaries/id.json";
+import enDict from "@/lib/dictionaries/en.json";
+
+// Helper dictionary
+const getDict = (lang) => (lang === "en" ? enDict : idDict);
+
 export const metadata = {
   title: "Contacts | Achmad Aldino",
-  description: "Hubungi saya untuk kolaborasi, pertanyaan, atau sekadar menyapa.",
+  description:
+    "Hubungi saya untuk kolaborasi, pertanyaan, atau sekadar menyapa.",
 };
 
 // ============================================================
-// STATIC SHELL — Header dirender instan
+// STATIC SHELL
 // ============================================================
 export default function ContactsPage() {
   return (
     <main className="min-h-screen px-5 md:px-0 max-w-4xl mx-auto py-20 md:py-28">
-      {/* ===== HEADER SECTION ===== */}
-      <div className="mb-16">
-        <a
-          href="/"
-          className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors mb-8"
-        >
-          <FaArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-1" />
-          Back to Home
-        </a>
+      {/* HEADER — perlu cookies, dibungkus Suspense */}
+      <Suspense fallback={<HeaderSkeleton />}>
+        <PageHeader />
+      </Suspense>
 
-        <div className="flex items-baseline gap-4 mb-3">
-          <span className="text-xs font-mono text-accent tracking-widest">
-            06
-          </span>
-          <h1 className="text-4xl md:text-6xl font-bold text-text-main tracking-tighter">
-            Contacts
-          </h1>
-        </div>
-        <p className="text-base md:text-lg text-text-muted max-w-2xl">
-          Tertarik untuk berkolaborasi atau memiliki pertanyaan? Jangan ragu untuk menghubungi saya melalui saluran di bawah ini.
-        </p>
-      </div>
-
-      {/* ===== DYNAMIC CONTENT ===== */}
+      {/* CONTENT — fetch data, dibungkus Suspense */}
       <Suspense fallback={<ContactsSkeleton />}>
         <ContactsContent />
       </Suspense>
@@ -53,8 +44,58 @@ export default function ContactsPage() {
 }
 
 // ============================================================
-// SKELETON — Muncul saat data fetching
+// HEADER (dynamic — baca cookies + dictionary)
 // ============================================================
+async function PageHeader() {
+  // 🔑 Wajib: render per-request
+  await connection();
+
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value || "id";
+  const t = (path) =>
+    path.split(".").reduce((o, i) => o?.[i], getDict(lang)) || path;
+
+  return (
+    <div className="mb-16">
+      <a
+        href="/"
+        className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors mb-8"
+      >
+        <FaArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-1" />
+        {t("contacts.backToHome")}
+      </a>
+
+      <div className="flex items-baseline gap-4 mb-3">
+        <span className="text-xs font-mono text-accent tracking-widest">
+          06
+        </span>
+        <h1 className="text-4xl md:text-6xl font-bold text-text-main tracking-tighter">
+          {t("contacts.title")}
+        </h1>
+      </div>
+      <p className="text-base md:text-lg text-text-muted max-w-2xl">
+        {t("contacts.desc")}
+      </p>
+    </div>
+  );
+}
+
+// ============================================================
+// SKELETON FALLBACKS
+// ============================================================
+function HeaderSkeleton() {
+  return (
+    <div className="mb-16 animate-pulse">
+      <div className="h-4 w-32 rounded bg-surface mb-8" />
+      <div className="flex items-baseline gap-4 mb-3">
+        <div className="h-3 w-8 rounded bg-surface" />
+        <div className="h-12 md:h-16 w-40 md:w-56 rounded bg-surface" />
+      </div>
+      <div className="h-4 w-full max-w-2xl rounded bg-surface" />
+    </div>
+  );
+}
+
 function ContactsSkeleton() {
   return (
     <>
@@ -84,10 +125,17 @@ function ContactsSkeleton() {
 // DYNAMIC CONTENT — Fetch data + render kartu
 // ============================================================
 async function ContactsContent() {
+  // 🔑 Wajib: render per-request
   await connection();
+
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value || "id";
+  const t = (path) =>
+    path.split(".").reduce((o, i) => o?.[i], getDict(lang)) || path;
+
   const supabase = await createClient();
 
-  // ✅ FIX: Gunakan destructuring { data, error } dan handle error PGRST116
+  // ✅ Handle error PGRST116 (row belum ada)
   let contact = null;
   const { data, error } = await supabase
     .from("contacts")
@@ -101,7 +149,7 @@ async function ContactsContent() {
     console.error("Error fetching contacts:", error);
   }
 
-  // Helper untuk format nomor WA (ubah 08xxx menjadi 628xxx)
+  // Helper: format nomor WA (08xxx → 628xxx)
   const formatWhatsApp = (num) => {
     if (!num) return "";
     const cleaned = num.replace(/[^0-9]/g, "");
@@ -110,7 +158,9 @@ async function ContactsContent() {
 
   const formatEmailUrl = (email) => {
     const normalizedEmail = email.trim().replace(/^mailto:/i, "");
-    return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(normalizedEmail)}`;
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+      normalizedEmail
+    )}`;
   };
 
   return (
@@ -130,7 +180,7 @@ async function ContactsContent() {
             </div>
             <div>
               <h3 className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-1.5">
-                Email
+                {t("contacts.email")}
               </h3>
               <p className="text-lg md:text-xl font-medium text-text-main group-hover:text-accent transition-colors break-all">
                 {contact.email}
@@ -152,7 +202,7 @@ async function ContactsContent() {
             </div>
             <div>
               <h3 className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-1.5">
-                WhatsApp
+                {t("contacts.whatsapp")}
               </h3>
               <p className="text-lg md:text-xl font-medium text-text-main group-hover:text-accent transition-colors">
                 {contact.whatsapp}
@@ -172,7 +222,7 @@ async function ContactsContent() {
             </div>
             <div>
               <h3 className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-1.5">
-                Telepon
+                {t("contacts.phone")}
               </h3>
               <p className="text-lg md:text-xl font-medium text-text-main group-hover:text-accent transition-colors">
                 {contact.phone}
@@ -188,10 +238,10 @@ async function ContactsContent() {
           </div>
           <div>
             <h3 className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-1.5">
-              Lokasi
+              {t("contacts.location")}
             </h3>
             <p className="text-lg md:text-xl font-medium text-text-main mb-2">
-              {contact?.location || "Indonesia"}
+              {contact?.location || t("contacts.defaultLocation")}
             </p>
             {contact?.address && (
               <p className="text-sm text-text-muted/80 leading-relaxed whitespace-pre-line">
@@ -205,13 +255,13 @@ async function ContactsContent() {
       {/* ===== FOOTER NAVIGASI ===== */}
       <div className="mt-20 pt-8 border-t border-border/60 flex justify-between items-center">
         <span className="text-[10px] font-mono uppercase tracking-widest text-text-muted/60">
-          Let&apos;s Connect
+          {t("contacts.letsConnect")}
         </span>
         <a
           href="/"
           className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors"
         >
-          Back to Home
+          {t("contacts.backToHome")}
           <FaArrowLeft className="w-3 h-3 rotate-180 transition-transform duration-300 group-hover:translate-x-1" />
         </a>
       </div>

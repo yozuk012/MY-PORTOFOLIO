@@ -1,8 +1,9 @@
-// src/hooks/admin/useSkills.js
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/client";
+// 🆕 BARU: Import fungsi translate
+import { translateToEnglish } from "@/lib/translate";
 
 export function useSkills() {
   const [skills, setSkills] = useState([]);
@@ -40,7 +41,7 @@ export function useSkills() {
   }, []);
 
   // ============================================
-  // 2. CREATE SKILL
+  // 2. CREATE SKILL + AUTO TRANSLATE
   // ============================================
   const createSkill = async (formData) => {
     try {
@@ -48,13 +49,21 @@ export function useSkills() {
       setError(null);
       setSuccessMessage(null);
 
+      // 🆕 BARU: Auto-translate name dan description secara paralel (lebih cepat)
+      const [name_en, description_en] = await Promise.all([
+        translateToEnglish(formData.name),
+        translateToEnglish(formData.description),
+      ]);
+
       const { data, error } = await supabase
         .from("skills")
         .insert([
           {
             name: formData.name,
+            name_en: name_en, // 🆕 Simpan hasil translate
             description: formData.description,
-            score: Number(formData.score) || 5, // ✅ tambahan
+            description_en: description_en, // 🆕 Simpan hasil translate
+            score: Number(formData.score) || 5,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -69,7 +78,7 @@ export function useSkills() {
           (a, b) => b.score - a.score || a.name.localeCompare(b.name)
         )
       );
-      setSuccessMessage("Skill baru berhasil ditambahkan!");
+      setSuccessMessage("Skill baru berhasil ditambahkan dan diterjemahkan!");
       return true;
     } catch (err) {
       console.error("Error creating skill:", err);
@@ -81,7 +90,7 @@ export function useSkills() {
   };
 
   // ============================================
-  // 3. UPDATE SKILL
+  // 3. UPDATE SKILL + AUTO TRANSLATE
   // ============================================
   const updateSkill = async (id, formData) => {
     try {
@@ -89,12 +98,20 @@ export function useSkills() {
       setError(null);
       setSuccessMessage(null);
 
+      // 🆕 BARU: Auto-translate name dan description secara paralel
+      const [name_en, description_en] = await Promise.all([
+        translateToEnglish(formData.name),
+        translateToEnglish(formData.description),
+      ]);
+
       const { data, error } = await supabase
         .from("skills")
         .update({
           name: formData.name,
+          name_en: name_en, // 🆕 Update hasil translate
           description: formData.description,
-          score: Number(formData.score) || 5, // ✅ tambahan
+          description_en: description_en, // 🆕 Update hasil translate
+          score: Number(formData.score) || 5,
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -108,7 +125,7 @@ export function useSkills() {
           .map((skill) => (skill.id === id ? data : skill))
           .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
       );
-      setSuccessMessage("Skill berhasil diperbarui!");
+      setSuccessMessage("Skill berhasil diperbarui dan diterjemahkan!");
       return true;
     } catch (err) {
       console.error("Error updating skill:", err);

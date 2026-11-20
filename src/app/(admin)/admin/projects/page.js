@@ -110,9 +110,11 @@ export default function ManageProjectsPage() {
     setFormData((prev) => ({ ...prev, tech_tags: newTags }));
   };
 
-  const handleFileChange = (file, previewUrl) => {
+  const handleFileChange = (file) => {
     setImageFile(file);
-    setFormData((prev) => ({ ...prev, image_url: previewUrl || "" }));
+    if (!file) {
+      setFormData((prev) => ({ ...prev, image_url: null }));
+    }
   };
 
   const handleSubmit = async () => {

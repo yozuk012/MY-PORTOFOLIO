@@ -107,9 +107,11 @@ export default function ManageExperiencesPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (file, previewUrl) => {
+  const handleFileChange = (file) => {
     setImageFile(file);
-    setFormData((prev) => ({ ...prev, image_url: previewUrl || "" }));
+    if (!file) {
+      setFormData((prev) => ({ ...prev, image_url: null }));
+    }
   };
 
   const handleSubmit = async () => {

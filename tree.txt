@@ -34,21 +34,27 @@ my-project
 │   │   │   │   └── page.js
 │   │   │   ├── home
 │   │   │   │   └── components
+│   │   │   │       ├── LanguageToggle.jsx
 │   │   │   │       ├── Section1Profile.jsx
 │   │   │   │       ├── Section2Skills.jsx
 │   │   │   │       ├── Section3Education.jsx
 │   │   │   │       ├── Section4Experiences.jsx
-│   │   │   │       └── Section5Projects.jsx
+│   │   │   │       ├── Section5Projects.jsx
+│   │   │   │       └── ThemeToggle.jsx
 │   │   │   ├── projects
 │   │   │   │   └── page.js
 │   │   │   ├── skills
 │   │   │   │   └── page.js
-│   │   │   └── test-connection
-│   │   │       └── page.js
+│   │   │   ├── test-connection
+│   │   │   │   └── page.js
+│   │   │   ├── layout.js
+│   │   │   └── page.js
 │   │   ├── globals.css
 │   │   ├── layout.js
-│   │   ├── not-found.js
-│   │   └── page.js
+│   │   └── not-found.js
+│   ├── blueprint
+│   │   ├── DATABASE.MD
+│   │   └── FEATURES.MD
 │   ├── hooks
 │   │   ├── admin
 │   │   │   ├── useAuth.js
@@ -60,9 +66,14 @@ my-project
 │   │   │   ├── useProjects.js
 │   │   │   └── useSkills.js
 │   │   └── public
+│   │       └── useTheme.js
 │   └── lib
+│       ├── dictionaries
+│       │   ├── en.json
+│       │   └── id.json
 │       ├── client.js
-│       └── server.js
+│       ├── server.js
+│       └── translate.js
 ├── .env.local
 ├── .env.production
 ├── .gitignore

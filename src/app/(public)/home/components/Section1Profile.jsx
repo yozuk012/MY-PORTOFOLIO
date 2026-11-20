@@ -1,5 +1,6 @@
 // src/app/(public)/home/components/Section1Profile.jsx
 import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/server";
 import {
   FaGithub,
@@ -18,28 +19,54 @@ import {
   FaArrowRight,
 } from "react-icons/fa";
 
+// Import dictionary lokal
+import idDict from "@/lib/dictionaries/id.json";
+import enDict from "@/lib/dictionaries/en.json";
+
+// Helper dictionary
+const getDict = (lang) => (lang === "en" ? enDict : idDict);
+
+// Fallback bilingual: jika EN kosong, pakai ID
+const getBilingual = (lang, idVal, enVal) =>
+  lang === "en" ? enVal || idVal : idVal;
+
 export default async function Section1Profile() {
+  // 🔑 Wajib: pastikan render per-request (hindari error Date.now() saat prerender)
   await connection();
+
+  // 1. Baca preferensi bahasa dari cookie (default 'id')
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value || "id";
+
+  // Helper translate untuk teks statis
+  const t = (path) =>
+    path.split(".").reduce((o, i) => o?.[i], getDict(lang)) || path;
+
   const supabase = await createClient();
 
+  // 2. Fetch data termasuk kolom _en
   let profile = null;
   const { data: profileData, error: profileError } = await supabase
     .from("profile")
-    .select("full_name, bio, role, top_skills, social_links, is_active, photo_url")
+    .select(
+      "full_name, full_name_en, bio, bio_en, role, role_en, top_skills, social_links, is_active, photo_url"
+    )
     .limit(1)
     .single();
   if (!profileError || profileError.code === "PGRST116") profile = profileData;
 
   const { data: topScoredSkills } = await supabase
     .from("skills")
-    .select("name, score")
+    .select("name, name_en, score")
     .order("score", { ascending: false })
     .limit(3);
 
   const featuredSkills =
     profile?.top_skills?.length > 0
       ? profile.top_skills.slice(0, 3)
-      : (topScoredSkills || []).map((s) => s.name);
+      : (topScoredSkills || []).map((s) =>
+          getBilingual(lang, s.name, s.name_en)
+        );
 
   // ============================================
   // ICON MAP
@@ -63,7 +90,7 @@ export default async function Section1Profile() {
   };
 
   // ============================================
-  // LABEL MAP
+  // LABEL MAP (Dinamis berdasarkan bahasa)
   // ============================================
   const getLabel = (platform) => {
     const key = platform?.toLowerCase();
@@ -78,30 +105,41 @@ export default async function Section1Profile() {
       behance: "Behance",
       website: "Website",
       email: "Email",
-      other: "Lainnya",
+      other: lang === "en" ? "Other" : "Lainnya",
     };
     return labels[key] || platform || "Link";
   };
 
   // ============================================
-  // ✅ FORMAT URL (Agar link tidak menjadi relative path)
+  // FORMAT URL (hindari relative path)
   // ============================================
   const formatUrl = (platform, url) => {
     const normalizedUrl = url?.trim();
     if (!normalizedUrl) return "#";
     const key = platform?.trim().toLowerCase();
 
-    // Gunakan Gmail compose agar link tetap dapat dibuka di browser.
     if (key === "email") {
       const email = normalizedUrl.replace(/^mailto:/i, "");
-      return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+      return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+        email
+      )}`;
     }
 
-    // Jika platform lain (github, website, dll), pastikan ada https://
     return /^https?:\/\//i.test(normalizedUrl)
       ? normalizedUrl
       : `https://${normalizedUrl}`;
   };
+
+  // ============================================
+  // RESOLVE DATA BILINGUAL
+  // ============================================
+  const displayName = getBilingual(
+    lang,
+    profile?.full_name,
+    profile?.full_name_en
+  );
+  const displayRole = getBilingual(lang, profile?.role, profile?.role_en);
+  const displayBio = getBilingual(lang, profile?.bio, profile?.bio_en);
 
   return (
     <section
@@ -112,7 +150,7 @@ export default async function Section1Profile() {
       <div className="flex items-center gap-2 mb-6">
         <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
         <span className="text-xs font-mono text-text-muted uppercase tracking-widest">
-          {profile?.is_active ? "Available for work" : "Offline"}
+          {profile?.is_active ? t("badge.availableForWork") : "Offline"}
         </span>
       </div>
 
@@ -122,7 +160,7 @@ export default async function Section1Profile() {
           {profile?.photo_url ? (
             <img
               src={profile.photo_url}
-              alt={profile.full_name}
+              alt={displayName || "Profile"}
               className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover grayscale hover:grayscale-0 transition duration-500"
             />
           ) : (
@@ -134,10 +172,10 @@ export default async function Section1Profile() {
 
         <div className="flex-1">
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-text-main tracking-tighter leading-[0.95]">
-            {profile?.full_name || "Achmad Aldino"}
+            {displayName || "Achmad Aldino"}
           </h1>
           <p className="mt-3 text-lg md:text-2xl font-mono text-accent">
-            {profile?.role || "Web Developer"}
+            {displayRole || "Web Developer"}
           </p>
         </div>
       </div>
@@ -151,7 +189,7 @@ export default async function Section1Profile() {
         <div className="space-y-5">
           <div>
             <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-1.5">
-              Location
+              {t("labels.location")}
             </p>
             <p className="inline-flex items-center gap-2 text-sm text-text-main font-mono">
               <FaMapMarkerAlt className="w-3.5 h-3.5 text-accent" />
@@ -162,7 +200,7 @@ export default async function Section1Profile() {
           {featuredSkills.length > 0 && (
             <div>
               <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-2">
-                Top Skills
+                {t("labels.topSkills")}
               </p>
               <ul className="space-y-1">
                 {featuredSkills.map((skill, i) => (
@@ -180,7 +218,7 @@ export default async function Section1Profile() {
 
           <div>
             <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted mb-2">
-              Connect
+              {t("labels.connect")}
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {profile?.social_links?.length > 0 ? (
@@ -211,8 +249,10 @@ export default async function Section1Profile() {
         {/* Kolom kanan: Bio & CTA Link */}
         <div className="md:col-span-2">
           <p className="text-base md:text-lg text-text-muted leading-relaxed text-balance max-w-2xl">
-            {profile?.bio ||
-              "Web Developer yang fokus pada website modern, responsif, dan aksesibel."}
+            {displayBio ||
+              (lang === "en"
+                ? "Web Developer focused on building modern, responsive, and accessible websites."
+                : "Web Developer yang fokus pada website modern, responsif, dan aksesibel.")}
           </p>
 
           <a
@@ -220,7 +260,7 @@ export default async function Section1Profile() {
             className="group mt-8 inline-flex items-center gap-3 text-xs font-mono uppercase tracking-widest text-accent transition-opacity hover:opacity-80"
           >
             <span className="h-px w-8 bg-accent/50 transition-all duration-300 group-hover:w-12 group-hover:bg-accent" />
-            Get in Touch
+            {t("hero.getInTouch")}
             <FaArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" />
           </a>
         </div>

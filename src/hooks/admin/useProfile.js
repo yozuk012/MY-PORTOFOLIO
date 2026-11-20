@@ -1,12 +1,15 @@
-// src/hooks/admin/useProfile.js
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/client";
+// 🆕 BARU: Import fungsi translate dari lib yang sudah kamu buat
+import { translateToEnglish } from "@/lib/translate";
 
-// Konfigurasi Storage
+// ============================================
+// KONFIGURASI STORAGE
+// ============================================
 const BUCKET_NAME = "my-portofolio";
-const PROFILE_FOLDER = "picture-profile";
+const PROFILE_FOLDER = "profiles";
 
 const getErrorMessage = (error, fallbackMessage) => {
   if (!error) return fallbackMessage;
@@ -32,7 +35,7 @@ export function useProfile() {
   const supabase = useMemo(() => createClient(), []);
 
   // ============================================
-  // FETCH PROFILE
+  // 1. FETCH PROFILE
   // ============================================
   const fetchProfile = useCallback(async () => {
     try {
@@ -46,9 +49,8 @@ export function useProfile() {
         .single();
 
       if (error) {
-        // PGRST116 = tidak ada data (tabel kosong)
         if (error.code === "PGRST116") {
-          setProfile(null);
+          setProfile(null); // Tabel kosong, ini normal untuk pertama kali
         } else {
           throw error;
         }
@@ -61,21 +63,19 @@ export function useProfile() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   // ============================================
-  // UPLOAD IMAGE TO SUPABASE STORAGE
+  // 2. UPLOAD IMAGE (STABIL: NAMA BARU + UPSERT FALSE)
   // ============================================
   const uploadImage = async (file) => {
     if (!file) return null;
 
     try {
-      // Generate unique filename dengan timestamp
       const fileExt = file.name.split(".").pop();
       const fileName = `profile-${Date.now()}.${fileExt}`;
       const filePath = `${PROFILE_FOLDER}/${fileName}`;
 
-      // Upload ke bucket my-portofolio, folder picture-profile
       const { data, error } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(filePath, file, {
@@ -86,7 +86,6 @@ export function useProfile() {
 
       if (error) throw error;
 
-      // Dapatkan public URL
       const { data: urlData } = supabase.storage
         .from(BUCKET_NAME)
         .getPublicUrl(filePath);
@@ -99,7 +98,7 @@ export function useProfile() {
   };
 
   // ============================================
-  // DELETE OLD IMAGE (opsional, untuk cleanup)
+  // 3. DELETE OLD IMAGE (BEST EFFORT / FIRE-AND-FORGET)
   // ============================================
   const deleteOldImage = async (imageUrl) => {
     if (!imageUrl) return;
@@ -107,27 +106,37 @@ export function useProfile() {
     try {
       const marker = `/storage/v1/object/public/${BUCKET_NAME}/`;
       const markerIndex = imageUrl.indexOf(marker);
-      if (markerIndex === -1) return;
+      
+      let filePath = "";
+      if (markerIndex !== -1) {
+        filePath = decodeURIComponent(
+          imageUrl.slice(markerIndex + marker.length).split(/[?#]/)[0]
+        );
+      } else if (imageUrl.startsWith(`${PROFILE_FOLDER}/`)) {
+        filePath = decodeURIComponent(imageUrl.split(/[?#]/)[0]);
+      }
 
-      const filePath = decodeURIComponent(
-        imageUrl.slice(markerIndex + marker.length).split(/[?#]/)[0]
-      );
-
-      if (!filePath.startsWith(`${PROFILE_FOLDER}/`)) return;
+      if (!filePath || !filePath.startsWith(`${PROFILE_FOLDER}/`)) {
+        console.warn("⛔ [deleteOldImage] Path tidak valid atau di luar folder profiles:", filePath);
+        return;
+      }
 
       const { error } = await supabase.storage
         .from(BUCKET_NAME)
         .remove([filePath]);
 
-      if (error) throw error;
+      if (error) {
+        console.warn("⚠️ [deleteOldImage] Gagal menghapus gambar lama (Best Effort):", error.message);
+      } else {
+        console.log("✅ [deleteOldImage] Berhasil dihapus:", filePath);
+      }
     } catch (err) {
-      // Gagal hapus tidak fatal, hanya log
-      console.warn("Gagal menghapus gambar lama:", err);
+      console.warn("⚠️ [deleteOldImage] Exception saat menghapus:", err);
     }
   };
 
   // ============================================
-  // UPDATE PROFILE
+  // 4. UPDATE PROFILE (Create or Update) + AUTO TRANSLATE
   // ============================================
   const updateProfile = async (formData, imageFile = null) => {
     try {
@@ -147,13 +156,13 @@ export function useProfile() {
       let photoUrl = formData.photo_url;
       const oldPhotoUrl = profile?.photo_url;
 
-      // Upload file baru terlebih dahulu. URL blob hanya untuk preview di browser.
+      // 1. Upload file baru terlebih dahulu (jika ada)
       if (imageFile) {
         photoUrl = await uploadImage(imageFile);
       }
 
-      // Prepare data untuk update
-      const updateData = {
+      // 2. Prepare data dasar untuk database (Bahasa Indonesia)
+      const baseData = {
         full_name: formData.full_name,
         bio: formData.bio,
         photo_url: photoUrl,
@@ -167,23 +176,38 @@ export function useProfile() {
         updated_at: new Date().toISOString(),
       };
 
-      // Jika profile belum ada, insert baru
+      // 🆕 BARU: 3. AUTO-TRANSLATE field teks utama ke Bahasa Inggris
+      // Kita gunakan Promise.all agar proses translate berjalan paralel (lebih cepat)
+      const [full_name_en, bio_en, role_en] = await Promise.all([
+        translateToEnglish(baseData.full_name),
+        translateToEnglish(baseData.bio),
+        translateToEnglish(baseData.role),
+      ]);
+
+      // 4. Gabungkan data ID dan data EN
+      const finalData = {
+        ...baseData,
+        full_name_en, // Akan jadi null jika API gagal (aman, frontend akan fallback ke ID)
+        bio_en,
+        role_en,
+      };
+
+      // 5. Insert atau Update ke database
       if (!profile) {
         const { data, error } = await supabase
           .from("profile")
-          .insert([updateData])
+          .insert([finalData])
           .select()
           .single();
 
         if (error) throw error;
 
         setProfile(data);
-        setSuccessMessage("Profile berhasil dibuat!");
+        setSuccessMessage("Profile berhasil dibuat dan diterjemahkan!");
       } else {
-        // Jika sudah ada, update
         const { data, error } = await supabase
           .from("profile")
-          .update(updateData)
+          .update(finalData)
           .eq("id", profile.id)
           .select()
           .single();
@@ -191,12 +215,12 @@ export function useProfile() {
         if (error) throw error;
 
         setProfile(data);
-        setSuccessMessage("Profile berhasil diperbarui!");
+        setSuccessMessage("Profile berhasil diperbarui dan diterjemahkan!");
       }
 
-      // Hapus file lama hanya setelah URL baru berhasil disimpan ke database.
+      // 6. Hapus file lama HANYA JIKA update database berhasil (Best Effort)
       if (imageFile && oldPhotoUrl && oldPhotoUrl !== photoUrl) {
-        await deleteOldImage(oldPhotoUrl);
+        deleteOldImage(oldPhotoUrl);
       }
 
       return true;
@@ -215,6 +239,9 @@ export function useProfile() {
     }
   };
 
+  // ============================================
+  // 5. UPDATE AVAILABILITY STATUS
+  // ============================================
   const updateAvailability = async (isActive) => {
     if (!profile) return false;
 
@@ -250,7 +277,7 @@ export function useProfile() {
   };
 
   // ============================================
-  // CLEAR MESSAGES
+  // 6. CLEAR MESSAGES
   // ============================================
   const clearMessages = () => {
     setError(null);

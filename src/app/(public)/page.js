@@ -1,10 +1,10 @@
 // src/app/page.js
 import { Suspense } from "react";
-import Section1Profile from "./(public)/home/components/Section1Profile";
-import Section2Skills from "./(public)/home/components/Section2Skills";
-import Section3Education from "./(public)/home/components/Section3Education";
-import Section4Experiences from "./(public)/home/components/Section4Experiences";
-import Section5Projects from "./(public)/home/components/Section5Projects";
+import Section1Profile from "./home/components/Section1Profile";
+import Section2Skills from "./home/components/Section2Skills";
+import Section3Education from "./home/components/Section3Education";
+import Section4Experiences from "./home/components/Section4Experiences";
+import Section5Projects from "./home/components/Section5Projects";
 
 export default function HomePage() {
   return (

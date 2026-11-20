@@ -1,0 +1,96 @@
+{
+  "badge": {
+    "availableForWork": "AVAILABLE FOR WORK"
+  },
+  "hero": {
+    "role": "Web Developer",
+    "getInTouch": "GET IN TOUCH"
+  },
+  "labels": {
+    "location": "LOCATION",
+    "topSkills": "TOP SKILLS",
+    "connect": "CONNECT"
+  },
+  "sections": {
+    "skills": "Skills",
+    "skillsDesc": "Technical skills I use to build digital products — ranked by proficiency.",
+    "education": "Education",
+    "educationDesc": "Formal academic background that shaped the foundation of my skills and mindset.",
+    "experiences": "Experiences",
+    "experiencesDesc": "Professional journey, internships, and real activities where I apply my skills to solve problems.",
+    "projects": "Featured Projects",
+    "projectsDesc": "A curated selection of projects showcasing how I design and build digital solutions."
+  },
+  "education": {
+    "present": "Present",
+    "empty": "No education data has been added yet.",
+    "noDescription": "No description available."
+  },
+  "experiences": {
+    "present": "Present",
+    "empty": "No experience data has been added yet.",
+    "viewAll": "View all experiences",
+    "backToHome": "Back to Home",
+    "allExperiences": "All Experiences",
+    "noDescription": "No description has been added for this experience.",
+    "noImage": "NO IMAGE",
+    "recorded": "EXPERIENCES RECORDED",
+    "types": {
+      "pkl": "Internship",
+      "magang": "Internship",
+      "seminar": "Seminar",
+      "project": "Project",
+      "organization": "Organization",
+      "volunteer": "Volunteer",
+      "other": "Other"
+    }
+  },
+  "skills": {
+    "backToHome": "Back to Home",
+    "allSkills": "All Skills",
+    "allSkillsDesc": "A complete list of technical skills I use daily, sorted by proficiency score (1–10).",
+    "registered": "SKILLS REGISTERED",
+    "empty": "No skills have been added yet.",
+    "noDescription": "No description has been added for this skill."
+  },
+  "projects": {
+    "viewAll": "View all",
+    "noPreview": "NO PREVIEW",
+    "demo": "Demo",
+    "empty": "No projects have been published yet.",
+    "backToHome": "Back to Home",
+    "allProjects": "All Projects",
+    "allProjectsDesc": "A curated collection of works that reflect my approach to solving problems through code, design, and strategy.",
+    "liveDemo": "Live Demo",
+    "visitSite": "Visit Site",
+    "noTags": "No tags",
+    "noDescription": "No description has been added for this project.",
+    "showcased": "PROJECTS SHOWCASED",
+    "statuses": {
+      "active": "Active",
+      "done": "Done",
+      "progress": "In Progress",
+      "draft": "Draft"
+    }
+  },
+  "cta": {
+    "viewAllSkills": "View all skills",
+    "viewAllProjects": "View all projects"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "back": "Back"
+  },
+  "contacts": {
+    "backToHome": "Back to Home",
+    "title": "Contacts",
+    "desc": "Interested in collaborating or have questions? Feel free to reach out through the channels below.",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
+    "phone": "Phone",
+    "location": "Location",
+    "defaultLocation": "Indonesia",
+    "letsConnect": "Let's Connect"
+  }
+}

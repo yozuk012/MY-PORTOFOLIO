@@ -1,0 +1,96 @@
+{
+  "badge": {
+    "availableForWork": "SIAP UNTUK BEKERJA"
+  },
+  "hero": {
+    "role": "Web Developer",
+    "getInTouch": "HUBUNGI SAYA"
+  },
+  "labels": {
+    "location": "LOKASI",
+    "topSkills": "KEAHLIAN UTAMA",
+    "connect": "TERHUBUNG"
+  },
+  "sections": {
+    "skills": "Keahlian",
+    "skillsDesc": "Keahlian teknis yang saya gunakan untuk membangun produk digital — diurutkan berdasarkan tingkat kemahiran.",
+    "education": "Pendidikan",
+    "educationDesc": "Riwayat pendidikan formal dan akademik yang membentuk fondasi keahlian dan pola pikir saya.",
+    "experiences": "Pengalaman",
+    "experiencesDesc": "Perjalanan profesional, magang, dan kegiatan nyata di mana saya menerapkan keahlian untuk memecahkan masalah.",
+    "projects": "Proyek Unggulan",
+    "projectsDesc": "Kumpulan proyek pilihan yang menunjukkan cara saya merancang dan membangun solusi digital."
+  },
+  "education": {
+    "present": "Sekarang",
+    "empty": "Belum ada data pendidikan yang ditambahkan.",
+    "noDescription": "Tidak ada deskripsi."
+  },
+  "experiences": {
+    "present": "Sekarang",
+    "empty": "Belum ada data pengalaman yang ditambahkan.",
+    "viewAll": "Lihat semua pengalaman",
+    "backToHome": "Kembali ke Beranda",
+    "allExperiences": "Semua Pengalaman",
+    "noDescription": "Tidak ada deskripsi yang ditambahkan untuk pengalaman ini.",
+    "noImage": "TANPA GAMBAR",
+    "recorded": "PENGALAMAN TERCATAT",
+    "types": {
+      "pkl": "PKL",
+      "magang": "Magang",
+      "seminar": "Seminar",
+      "project": "Project",
+      "organization": "Organisasi",
+      "volunteer": "Volunteer",
+      "other": "Lainnya"
+    }
+  },
+  "skills": {
+    "backToHome": "Kembali ke Beranda",
+    "allSkills": "Semua Keahlian",
+    "allSkillsDesc": "Daftar lengkap keahlian teknis yang saya gunakan sehari-hari, diurutkan berdasarkan tingkat kemahiran (skor 1-10).",
+    "registered": "KEAHLIAN TERDAFTAR",
+    "empty": "Belum ada skill yang ditambahkan.",
+    "noDescription": "Tidak ada deskripsi yang ditambahkan untuk skill ini."
+  },
+  "projects": {
+    "viewAll": "Lihat semua",
+    "noPreview": "TANPA PREVIEW",
+    "demo": "Demo",
+    "empty": "Belum ada proyek yang dipublikasikan.",
+    "backToHome": "Kembali ke Beranda",
+    "allProjects": "Semua Proyek",
+    "allProjectsDesc": "Kumpulan karya terpilih yang mencerminkan pendekatan saya dalam memecahkan masalah melalui kode, desain, dan strategi.",
+    "liveDemo": "Live Demo",
+    "visitSite": "Kunjungi Situs",
+    "noTags": "Tanpa tag",
+    "noDescription": "Tidak ada deskripsi yang ditambahkan untuk proyek ini.",
+    "showcased": "PROYEK DIPAMERKAN",
+    "statuses": {
+      "active": "Aktif",
+      "done": "Selesai",
+      "progress": "Proses",
+      "draft": "Draf"
+    }
+  },
+  "cta": {
+    "viewAllSkills": "Lihat semua keahlian",
+    "viewAllProjects": "Lihat semua proyek"
+  },
+  "common": {
+    "loading": "Memuat...",
+    "error": "Terjadi kesalahan",
+    "back": "Kembali"
+  },
+  "contacts": {
+    "backToHome": "Kembali ke Beranda",
+    "title": "Kontak",
+    "desc": "Tertarik untuk berkolaborasi atau memiliki pertanyaan? Jangan ragu untuk menghubungi saya melalui saluran di bawah ini.",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
+    "phone": "Telepon",
+    "location": "Lokasi",
+    "defaultLocation": "Indonesia",
+    "letsConnect": "Mari Terhubung"
+  }
+}

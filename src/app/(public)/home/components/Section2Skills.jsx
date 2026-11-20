@@ -1,31 +1,57 @@
 // src/app/(public)/home/components/Section2Skills.jsx
 import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/server";
 import { FaArrowRight } from "react-icons/fa";
 
+// Import dictionary lokal
+import idDict from "@/lib/dictionaries/id.json";
+import enDict from "@/lib/dictionaries/en.json";
+
+// Helper untuk mengambil nilai dari dictionary
+const getDict = (lang) => (lang === "en" ? enDict : idDict);
+
+// Fallback helper: jika bahasa EN tapi data EN kosong, pakai data ID
+const getBilingual = (lang, idVal, enVal) =>
+  lang === "en" ? enVal || idVal : idVal;
+
 export default async function Section2Skills() {
+  // 🔑 Wajib: pastikan render per-request (hindari error Date.now() saat prerender)
   await connection();
+
+  // 1. Baca preferensi bahasa dari Cookie (default 'id')
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value || "id";
+
+  // Helper fungsi translate untuk teks statis
+  const t = (path) =>
+    path.split(".").reduce((o, i) => o?.[i], getDict(lang)) || path;
+
   const supabase = await createClient();
 
-  // ✅ FIX: hanya tampilkan yang show_on_home = true, urut by home_order
+  // 2. Fetch skills termasuk kolom name_en
   const { data: skills } = await supabase
     .from("skills")
-    .select("name, score")
-    .eq("show_on_home", true)                      // ← filter
-    .order("home_order", { ascending: true })      // ← urut admin
-    .order("score", { ascending: false })          // ← tie-breaker
+    .select("name, name_en, score")
+    .eq("show_on_home", true) // ← filter
+    .order("home_order", { ascending: true }) // ← urut admin
+    .order("score", { ascending: false }) // ← tie-breaker
     .limit(8);
 
-  // ✅ FIX: marquee juga filter
+  // 3. Fetch semua skills untuk marquee (termasuk name_en)
   const { data: allSkills } = await supabase
     .from("skills")
-    .select("name")
-    .eq("show_on_home", true)                      // ← filter
+    .select("name, name_en")
+    .eq("show_on_home", true) // ← filter
     .order("home_order", { ascending: true })
     .order("name", { ascending: true });
 
   const skillList = skills || [];
-  const marqueeSkills = (allSkills || []).map((s) => s.name);
+
+  // Map marquee skills dengan fallback bilingual
+  const marqueeSkills = (allSkills || []).map((s) =>
+    getBilingual(lang, s.name, s.name_en)
+  );
 
   return (
     <section
@@ -35,12 +61,12 @@ export default async function Section2Skills() {
       <div className="flex items-baseline gap-4 mb-3">
         <span className="text-xs font-mono text-accent tracking-widest">02</span>
         <h2 className="text-3xl md:text-5xl font-bold text-text-main tracking-tighter">
-          Skills
+          {t("sections.skills")}
         </h2>
       </div>
+
       <p className="text-sm md:text-base text-text-muted mb-12 max-w-xl">
-        Keahlian teknis yang saya gunakan untuk membangun produk digital —
-        diurutkan berdasarkan tingkat kemahiran.
+        {t("sections.skillsDesc")}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12">
@@ -51,7 +77,8 @@ export default async function Section2Skills() {
           >
             <div className="flex items-baseline justify-between mb-2.5">
               <span className="text-base md:text-lg font-medium text-text-main">
-                {skill.name}
+                {/* 🆕 Gunakan getBilingual untuk nama skill */}
+                {getBilingual(lang, skill.name, skill.name_en)}
               </span>
               <span className="text-xs font-mono text-text-muted group-hover:text-accent transition-colors">
                 {skill.score}/10
@@ -72,7 +99,7 @@ export default async function Section2Skills() {
           href="/skills"
           className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors"
         >
-          View all skills
+          {t("cta.viewAllSkills")}
           <FaArrowRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" />
         </a>
       </div>

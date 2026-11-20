@@ -1,8 +1,9 @@
-// src/hooks/admin/useContacts.js
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/client";
+// 🆕 BARU: Import fungsi translate
+import { translateToEnglish } from "@/lib/translate";
 
 export function useContacts() {
   const [contact, setContact] = useState(null);
@@ -46,7 +47,7 @@ export function useContacts() {
   }, []);
 
   // ============================================
-  // 2. UPDATE / INSERT CONTACT (Upsert)
+  // 2. UPDATE / INSERT CONTACT (Upsert) + AUTO TRANSLATE
   // ============================================
   const updateContact = async (formData) => {
     try {
@@ -54,12 +55,21 @@ export function useContacts() {
       setError(null);
       setSuccessMessage(null);
 
+      // 🆕 BARU: Auto-translate hanya field teks yang relevan (address & location)
+      // Email, phone, whatsapp TIDAK diterjemahkan karena format universal
+      const [address_en, location_en] = await Promise.all([
+        translateToEnglish(formData.address),
+        translateToEnglish(formData.location),
+      ]);
+
       const updateData = {
         email: formData.email || null,
         phone: formData.phone || null,
         whatsapp: formData.whatsapp || null,
         address: formData.address || null,
+        address_en: address_en, // 🆕 Simpan hasil translate
         location: formData.location || null,
+        location_en: location_en, // 🆕 Simpan hasil translate
         updated_at: new Date().toISOString(),
       };
 
@@ -74,7 +84,7 @@ export function useContacts() {
         if (error) throw error;
 
         setContact(data);
-        setSuccessMessage("Data kontak berhasil dibuat!");
+        setSuccessMessage("Data kontak berhasil dibuat dan diterjemahkan!");
       } else {
         // Jika sudah ada, update
         const { data, error } = await supabase
@@ -87,7 +97,7 @@ export function useContacts() {
         if (error) throw error;
 
         setContact(data);
-        setSuccessMessage("Data kontak berhasil diperbarui!");
+        setSuccessMessage("Data kontak berhasil diperbarui dan diterjemahkan!");
       }
 
       return true;

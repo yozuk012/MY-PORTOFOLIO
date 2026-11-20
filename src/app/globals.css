@@ -1,40 +1,84 @@
-/* 1. Import Tailwind CSS v4 */
+/* =========================================
+   1. IMPORT & CORE CONFIGURATION
+   ========================================= */
 @import "tailwindcss";
 
-/* 2. Definisi Tema (Design Tokens) sesuai PRD */
+/* 
+  Mengaktifkan Class-based Dark Mode untuk Tailwind CSS v4.
+  Ini menggantikan 'darkMode: class' di tailwind.config.js versi lama.
+*/
+@custom-variant dark (&:is(.dark *));
+
+
+/* =========================================
+   2. DESIGN TOKENS (LIGHT MODE)
+   ========================================= */
 @theme {
   /* Warna Utama */
-  --color-background: #FFFFFF;       /* Latar belakang utama (Putih bersih) */
-  --color-surface: #F8FAFC;          /* Latar kartu/kontainer (Abu-abu sangat lembut) */
+  --color-background: #FFFFFF;       /* Latar belakang utama */
+  --color-surface: #F8FAFC;          /* Latar kartu/kontainer */
   --color-border: #E2E8F0;           /* Garis batas tipis 1px */
   
   /* Warna Teks */
   --color-text-main: #0F172A;        /* Teks utama (Hitam arang) */
-  --color-text-muted: #475569;       /* Teks deskripsi/sekunder (Abu-abu batu tulis) */
+  --color-text-muted: #475569;       /* Teks deskripsi/sekunder */
   
-  /* Warna Aksen */
-  --color-accent: #2563EB;           /* Biru teknologi (Link aktif, garis tab, status) */
+  /* Warna Aksen & Status */
+  --color-accent: #2563EB;           /* Biru teknologi */
   --color-accent-hover: #1D4ED8;     /* Biru teknologi saat hover */
-  --color-success: #10B981;          /* Hijau untuk status dot (Tersedia bekerja) */
+  --color-success: #10B981;          /* Hijau untuk status dot */
 
   /* Tipografi */
-  /* Catatan: Font family ini akan di-load via next/font di layout.js */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
-/* 3. Base Styles (Reset & Global) */
+
+/* =========================================
+   3. DESIGN TOKENS (DARK MODE)
+   ========================================= */
+/* 
+  Override variabel CSS saat class 'dark' aktif.
+  Warna disesuaikan agar kontras tetap terjaga dan nyaman di mata.
+*/
+.dark {
+  --color-background: #0F172A;       /* Slate 900 */
+  --color-surface: #1E293B;          /* Slate 800 */
+  --color-border: #334155;           /* Slate 700 */
+  
+  --color-text-main: #F8FAFC;        /* Slate 50 */
+  --color-text-muted: #94A3B8;       /* Slate 400 */
+  
+  --color-accent: #3B82F6;           /* Blue 500 (Sedikit lebih terang untuk dark mode) */
+  --color-accent-hover: #60A5FA;     /* Blue 400 */
+  --color-success: #34D399;          /* Emerald 400 */
+}
+
+
+/* =========================================
+   4. BASE STYLES (GLOBAL RESET)
+   ========================================= */
 body {
   background-color: var(--color-background);
   color: var(--color-text-main);
   font-family: var(--font-sans);
-  font-feature-settings: "cv11", "ss01"; /* Fitur opsional Inter untuk estetika lebih baik */
+  font-feature-settings: "cv11", "ss01"; 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  
+  /* Transisi halus saat beralih antara Light dan Dark mode */
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* 4. Utility Classes Kustom (Opsional, untuk mempercepat development) */
+html {
+  scroll-behavior: smooth;
+}
+
+
+/* =========================================
+   5. CUSTOM UTILITIES
+   ========================================= */
 @utility text-balance {
   text-wrap: balance;
 }
@@ -47,12 +91,11 @@ body {
   }
 }
 
-/* Tambahkan di bagian paling bawah globals.css */
-html {
-  scroll-behavior: smooth;
-}
 
-/* ===== Marquee Animation (Section Skills) ===== */
+/* =========================================
+   6. ANIMATIONS & COMPONENTS
+   ========================================= */
+/* Marquee Animation (Section Skills) */
 @keyframes marquee {
   from {
     transform: translateX(0);

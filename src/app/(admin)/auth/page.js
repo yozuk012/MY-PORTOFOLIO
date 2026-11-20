@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/admin/useAuth";
 import {
-  FaArrowLeft,
   FaLock,
   FaEnvelope,
   FaEye,
@@ -24,15 +23,6 @@ export default function LoginPage() {
 
   return (
     <div className="w-full">
-
-      {/* ===== Back link ===== */}
-      <a
-        href="/"
-        className="group inline-flex items-center gap-2 text-sm font-medium text-text-muted hover:text-accent transition-colors mb-10"
-      >
-        <FaArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-1" />
-        Back to Home
-      </a>
 
       {/* ===== Header ===== */}
       <div className="mb-8">

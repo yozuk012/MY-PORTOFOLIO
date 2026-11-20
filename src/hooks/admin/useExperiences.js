@@ -1,23 +1,22 @@
-// src/hooks/admin/useExperiences.js
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/client";
+// 🆕 BARU: Import fungsi translate
+import { translateToEnglish } from "@/lib/translate";
 
-// Konfigurasi Storage
+// ============================================
+// KONFIGURASI STORAGE
+// ============================================
 const BUCKET_NAME = "my-portofolio";
-const EXPERIENCE_FOLDER = "experiences-picture";
+const EXPERIENCE_FOLDER = "experiences";
 
-// Helper: konversi input tahun dari form (string) ke integer atau null
 const parseYear = (value) => {
   if (value === "" || value === null || value === undefined) return null;
   const num = parseInt(value, 10);
   return isNaN(num) ? null : num;
 };
 
-// Helper: ekstrak pesan dari Supabase error object
-// Supabase error: { code, message, details, hint }
-// Network error : Error instance (punya .message)
 const extractErrorMessage = (err, fallback) => {
   if (!err) return fallback;
   if (typeof err === "string") return err;
@@ -32,8 +31,6 @@ const extractErrorMessage = (err, fallback) => {
   }
 };
 
-// Helper: validasi tahun sebelum kirim ke DB
-// Return error string kalau tidak valid, null kalau valid
 const validateYears = (startYear, endYear) => {
   if (startYear !== null && (startYear < 1980 || startYear > 2100)) {
     return "Tahun mulai harus di antara 1980 dan 2100";
@@ -55,7 +52,7 @@ export function useExperiences() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // ============================================
   // 1. FETCH ALL EXPERIENCES
@@ -71,23 +68,17 @@ export function useExperiences() {
         .order("start_year", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
 
-      if (error) {
-        // Log full object dulu supaya kelihatan code/details/hint-nya
-        console.error("[fetchExperiences] Supabase error:", error);
-        throw new Error(extractErrorMessage(error, "Gagal memuat data pengalaman"));
-      }
-
+      if (error) throw new Error(extractErrorMessage(error, "Gagal memuat data pengalaman"));
       setExperiences(data || []);
     } catch (err) {
-      console.error("[fetchExperiences] Caught:", err);
       setError(extractErrorMessage(err, "Gagal memuat data pengalaman"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   // ============================================
-  // 2. UPLOAD IMAGE TO STORAGE
+  // 2. UPLOAD IMAGE (SELALU NAMA BARU, TANPA UPSERT)
   // ============================================
   const uploadImage = async (file) => {
     if (!file) return null;
@@ -97,7 +88,7 @@ export function useExperiences() {
       const fileName = `exp-${Date.now()}.${fileExt}`;
       const filePath = `${EXPERIENCE_FOLDER}/${fileName}`;
 
-      const { error } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(filePath, file, {
           cacheControl: "3600",
@@ -105,46 +96,41 @@ export function useExperiences() {
           contentType: file.type,
         });
 
-      if (error) {
-        console.error("[uploadImage] Supabase error:", error);
-        throw new Error(extractErrorMessage(error, "Gagal mengupload gambar"));
-      }
+      if (error) throw new Error(extractErrorMessage(error, "Gagal mengupload gambar"));
 
-      const { data: urlData } = supabase.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(filePath);
-
+      const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
       return urlData.publicUrl;
     } catch (err) {
-      console.error("[uploadImage] Caught:", err);
-      throw new Error(
-        "Gagal mengupload gambar: " + extractErrorMessage(err, "unknown error")
-      );
+      throw new Error("Gagal mengupload gambar: " + extractErrorMessage(err, "unknown error"));
     }
   };
 
   // ============================================
-  // 3. DELETE IMAGE FROM STORAGE
+  // 3. DELETE IMAGE (BEST EFFORT - JANGAN BLOKIR UI)
   // ============================================
   const deleteImage = async (imageUrl) => {
-    if (!imageUrl) return;
+    if (!imageUrl) return true;
 
     try {
-      const urlParts = imageUrl.split(`/storage/v1/object/public/${BUCKET_NAME}/`);
-      if (urlParts.length < 2) return;
+      let filePath = "";
+      if (imageUrl.includes(`/public/${BUCKET_NAME}/`)) {
+        filePath = imageUrl.split(`/public/${BUCKET_NAME}/`)[1].split(/[?#]/)[0];
+      } else if (imageUrl.startsWith(`${EXPERIENCE_FOLDER}/`)) {
+        filePath = imageUrl.split(/[?#]/)[0];
+      }
 
-      const filePath = urlParts[1];
+      filePath = decodeURIComponent(filePath).trim();
+      if (!filePath) return false;
 
-      await supabase.storage
-        .from(BUCKET_NAME)
-        .remove([filePath]);
+      await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+      return true; 
     } catch (err) {
-      console.warn("[deleteImage] Gagal menghapus gambar:", err);
+      return false;
     }
   };
 
   // ============================================
-  // 4. CREATE EXPERIENCE
+  // 4. CREATE EXPERIENCE + AUTO TRANSLATE
   // ============================================
   const createExperience = async (formData, imageFile = null) => {
     try {
@@ -152,49 +138,49 @@ export function useExperiences() {
       setError(null);
       setSuccessMessage(null);
 
-      // --- Parse & validasi tahun ---
-      const startYear = parseYear(formData.start_year);
-      const endYear = parseYear(formData.end_year);
-
-      const yearError = validateYears(startYear, endYear);
+      const yearError = validateYears(parseYear(formData.start_year), parseYear(formData.end_year));
       if (yearError) {
         setError(yearError);
         return false;
       }
 
-      // --- Upload gambar jika ada ---
       let imageUrl = null;
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-      }
+      if (imageFile) imageUrl = await uploadImage(imageFile);
+
+      // 🆕 BARU: Auto-translate text fields secara paralel (lebih cepat)
+      const [title_en, description_en, type_en] = await Promise.all([
+        translateToEnglish(formData.title),
+        translateToEnglish(formData.description),
+        translateToEnglish(formData.type),
+      ]);
 
       const { data, error } = await supabase
         .from("experiences")
-        .insert([
-          {
-            type: formData.type,
-            title: formData.title,
-            description: formData.description,
-            start_year: startYear,
-            end_year: endYear,
-            image_url: imageUrl,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ])
+        .insert([{
+          type: formData.type,
+          type_en: type_en, // 🆕 Simpan hasil translate
+          title: formData.title,
+          title_en: title_en, // 🆕 Simpan hasil translate
+          description: formData.description,
+          description_en: description_en, // 🆕 Simpan hasil translate
+          start_year: parseYear(formData.start_year),
+          end_year: parseYear(formData.end_year),
+          image_url: imageUrl,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }])
         .select()
         .single();
 
       if (error) {
-        console.error("[createExperience] Supabase error:", error);
+        if (imageUrl) await deleteImage(imageUrl); // Rollback
         throw new Error(extractErrorMessage(error, "Gagal menambahkan pengalaman"));
       }
 
       setExperiences((prev) => [data, ...prev]);
-      setSuccessMessage("Pengalaman berhasil ditambahkan!");
+      setSuccessMessage("Pengalaman berhasil ditambahkan dan diterjemahkan!");
       return true;
     } catch (err) {
-      console.error("[createExperience] Caught:", err);
       setError(extractErrorMessage(err, "Gagal menambahkan pengalaman"));
       return false;
     } finally {
@@ -203,7 +189,7 @@ export function useExperiences() {
   };
 
   // ============================================
-  // 5. UPDATE EXPERIENCE
+  // 5. UPDATE EXPERIENCE + AUTO TRANSLATE
   // ============================================
   const updateExperience = async (id, formData, imageFile = null) => {
     try {
@@ -211,34 +197,48 @@ export function useExperiences() {
       setError(null);
       setSuccessMessage(null);
 
-      // --- Parse & validasi tahun ---
-      const startYear = parseYear(formData.start_year);
-      const endYear = parseYear(formData.end_year);
-
-      const yearError = validateYears(startYear, endYear);
+      const yearError = validateYears(parseYear(formData.start_year), parseYear(formData.end_year));
       if (yearError) {
         setError(yearError);
         return false;
       }
 
-      // --- Handle image ---
-      let imageUrl = formData.image_url;
+      // 1. Ambil URL lama dari database
+      const { data: existingData } = await supabase
+        .from("experiences")
+        .select("image_url")
+        .eq("id", id)
+        .maybeSingle();
 
+      const oldImageUrl = existingData?.image_url || null;
+      let imageUrl = oldImageUrl;
+
+      // 2. Jika ada file baru, upload sebagai file BARU (bukan upsert)
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
-        if (formData.image_url) {
-          await deleteImage(formData.image_url);
-        }
+      } else if (formData.image_url === null || formData.image_url === "") {
+        imageUrl = null; // User menghapus gambar
       }
 
+      // 🆕 BARU: Auto-translate text fields secara paralel
+      const [title_en, description_en, type_en] = await Promise.all([
+        translateToEnglish(formData.title),
+        translateToEnglish(formData.description),
+        translateToEnglish(formData.type),
+      ]);
+
+      // 3. Update Database (Ini yang utama)
       const { data, error } = await supabase
         .from("experiences")
         .update({
           type: formData.type,
+          type_en: type_en, // 🆕 Update hasil translate
           title: formData.title,
+          title_en: title_en, // 🆕 Update hasil translate
           description: formData.description,
-          start_year: startYear,
-          end_year: endYear,
+          description_en: description_en, // 🆕 Update hasil translate
+          start_year: parseYear(formData.start_year),
+          end_year: parseYear(formData.end_year),
           image_url: imageUrl,
           updated_at: new Date().toISOString(),
         })
@@ -247,21 +247,18 @@ export function useExperiences() {
         .single();
 
       if (error) {
-        // Log full object — code, details, hint semua bakal kelihatan di console
-        console.error("[updateExperience] Supabase error:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
         throw new Error(extractErrorMessage(error, "Gagal memperbarui pengalaman"));
       }
 
+      // 4. BEST EFFORT DELETE: Coba hapus file lama, tapi JANGAN gagalkan proses jika gagal.
+      if (imageFile && oldImageUrl && oldImageUrl !== imageUrl) {
+        deleteImage(oldImageUrl);
+      }
+
       setExperiences((prev) => prev.map((exp) => (exp.id === id ? data : exp)));
-      setSuccessMessage("Pengalaman berhasil diperbarui!");
+      setSuccessMessage("Pengalaman berhasil diperbarui dan diterjemahkan!");
       return true;
     } catch (err) {
-      console.error("[updateExperience] Caught:", err);
       setError(extractErrorMessage(err, "Gagal memperbarui pengalaman"));
       return false;
     } finally {
@@ -278,25 +275,15 @@ export function useExperiences() {
       setError(null);
       setSuccessMessage(null);
 
-      const { error } = await supabase
-        .from("experiences")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("experiences").delete().eq("id", id);
+      if (error) throw new Error(extractErrorMessage(error, "Gagal menghapus pengalaman"));
 
-      if (error) {
-        console.error("[deleteExperience] Supabase error:", error);
-        throw new Error(extractErrorMessage(error, "Gagal menghapus pengalaman"));
-      }
-
-      if (imageUrl) {
-        await deleteImage(imageUrl);
-      }
+      if (imageUrl) await deleteImage(imageUrl);
 
       setExperiences((prev) => prev.filter((exp) => exp.id !== id));
       setSuccessMessage("Pengalaman berhasil dihapus!");
       return true;
     } catch (err) {
-      console.error("[deleteExperience] Caught:", err);
       setError(extractErrorMessage(err, "Gagal menghapus pengalaman"));
       return false;
     } finally {
@@ -304,17 +291,11 @@ export function useExperiences() {
     }
   };
 
-  // ============================================
-  // 7. CLEAR MESSAGES
-  // ============================================
   const clearMessages = () => {
     setError(null);
     setSuccessMessage(null);
   };
 
-  // ============================================
-  // AUTO FETCH ON MOUNT
-  // ============================================
   useEffect(() => {
     fetchExperiences();
   }, [fetchExperiences]);
@@ -326,6 +307,7 @@ export function useExperiences() {
     deletingId,
     error,
     successMessage,
+    fetchExperiences,
     createExperience,
     updateExperience,
     deleteExperience,
