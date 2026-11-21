@@ -28,7 +28,9 @@ export default async function Section6Notes() {
 
   const { data: notes, error } = await supabase
     .from("notes")
-    .select("id, title, slug, excerpt, content, category, tags, published_at")
+    .select(
+      "id, title, title_en, slug, excerpt, excerpt_en, content, content_en, category, category_en, tags, tags_en, published_at"
+    )
     .eq("is_published", true)
     .order("published_at", { ascending: false })
     .limit(3);
@@ -90,10 +92,10 @@ export default async function Section6Notes() {
               {/* Meta row: kategori + tanggal (kiri), arrow (kanan) */}
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3 flex-wrap">
-                  {note.category && (
+                  {(lang === "en" ? note.category_en || note.category : note.category) && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-accent/10 border border-accent/30 rounded text-[10px] font-mono uppercase tracking-widest text-accent">
                       <FaTag className="w-2 h-2" />
-                      {note.category}
+                      {lang === "en" ? note.category_en || note.category : note.category}
                     </span>
                   )}
                   {note.published_at && (
@@ -110,27 +112,32 @@ export default async function Section6Notes() {
 
               {/* Judul */}
               <h3 className="text-lg md:text-xl font-bold text-text-main tracking-tight mb-1.5 group-hover:text-accent transition-colors duration-300">
-                {note.title}
+                {lang === "en" ? note.title_en || note.title : note.title}
               </h3>
 
               {/* Excerpt / fallback potongan content */}
               <p className="text-sm text-text-muted/80 leading-relaxed mb-3 line-clamp-2">
-                {note.excerpt || note.content?.substring(0, 160) || ""}
+                {lang === "en"
+                  ? note.excerpt_en || note.excerpt || note.content_en || note.content?.substring(0, 160) || ""
+                  : note.excerpt || note.content?.substring(0, 160) || ""}
               </p>
 
               {/* Tags */}
-              {note.tags && note.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {note.tags.slice(0, 4).map((tag, j) => (
-                    <span
-                      key={j}
-                      className="px-2 py-0.5 bg-surface rounded text-[11px] font-mono text-text-muted"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {(() => {
+                const tags = lang === "en" ? note.tags_en?.length ? note.tags_en : note.tags : note.tags;
+                return tags && tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.slice(0, 4).map((tag, j) => (
+                      <span
+                        key={j}
+                        className="px-2 py-0.5 bg-surface rounded text-[11px] font-mono text-text-muted"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
             </a>
           ))}
         </div>

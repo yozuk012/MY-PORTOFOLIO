@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/client';
+import { translateToEnglish } from '@/lib/translate';
 
 /**
  * Helper: Generate URL-friendly slug dari title
@@ -20,7 +21,7 @@ const generateSlug = (title) => {
 /**
  * useNotes - Admin hook untuk CRUD notes
  */
-export default function useNotes() {
+export default function useNotes({ publicOnly = false } = {}) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,6 +56,11 @@ export default function useNotes() {
         query = query.eq('category', filterCategory);
       }
 
+      // Apply publicOnly filter
+      if (publicOnly) {
+        query = query.eq('is_published', true);
+      }
+
       const { data, error: fetchError } = await query;
 
       if (fetchError) {
@@ -81,7 +87,7 @@ export default function useNotes() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, searchTerm, filterCategory, filterStatus]);
+  }, [supabase, searchTerm, filterCategory, filterStatus, publicOnly]);
 
   // ============================================
   // 2. CREATE NOTE
@@ -104,25 +110,61 @@ export default function useNotes() {
         slug = `${slug}-${Date.now()}`; // Append timestamp jika duplicate
       }
 
-      const payload = {
+      const [title_en, excerpt_en, content_en, category_en] = await Promise.all([
+        translateToEnglish(noteData.title),
+        translateToEnglish(noteData.excerpt),
+        translateToEnglish(noteData.content),
+        translateToEnglish(noteData.category),
+      ]);
+
+      const tags_en = await Promise.all(
+        (Array.isArray(noteData.tags) ? noteData.tags : []).map(translateToEnglish)
+      );
+
+      const basePayload = {
         title: noteData.title,
         slug,
         content: noteData.content,
         excerpt: noteData.excerpt || null,
         category: noteData.category || null,
         tags: Array.isArray(noteData.tags) ? noteData.tags : [],
-        is_published: noteData.is_published === true, // Strict boolean check
+        is_published: noteData.is_published === true,
         published_at: noteData.is_published === true ? new Date().toISOString() : null,
       };
 
-      const { data, error: createError } = await supabase
+      let payload = {
+        ...basePayload,
+        title_en: title_en || null,
+        excerpt_en: excerpt_en || null,
+        content_en: content_en || null,
+        category_en: category_en || null,
+        tags_en: tags_en.map((tag) => tag || null).filter(Boolean),
+      };
+
+      let insertResult = await supabase
         .from('notes')
         .insert([payload])
         .select()
         .single();
 
+      if (insertResult.error) {
+        const missingBilingualColumn =
+          insertResult.error.code === 'PGRST204' ||
+          insertResult.error.message?.includes('does not exist');
+
+        if (missingBilingualColumn) {
+          insertResult = await supabase
+            .from('notes')
+            .insert([basePayload])
+            .select()
+            .single();
+        }
+      }
+
+      const { data, error: createError } = insertResult;
+
       if (createError) {
-        console.error('Create error:', createError);
+        console.error('Create error:', JSON.stringify(createError, null, 2));
         if (createError.code === '23505') {
           throw new Error('Slug sudah digunakan. Silakan ubah judul.');
         } else if (createError.code === '42501') {
@@ -181,6 +223,23 @@ export default function useNotes() {
       if (payload.tags && !Array.isArray(payload.tags)) {
         payload.tags = [];
       }
+
+      const [title_en, excerpt_en, content_en, category_en] = await Promise.all([
+        translateToEnglish(payload.title),
+        translateToEnglish(payload.excerpt),
+        translateToEnglish(payload.content),
+        translateToEnglish(payload.category),
+      ]);
+
+      const tags_en = await Promise.all(
+        (Array.isArray(payload.tags) ? payload.tags : []).map(translateToEnglish)
+      );
+
+      payload.title_en = title_en;
+      payload.excerpt_en = excerpt_en;
+      payload.content_en = content_en;
+      payload.category_en = category_en;
+      payload.tags_en = tags_en.map((tag) => tag || null).filter(Boolean);
 
       const { data, error: updateError } = await supabase
         .from('notes')

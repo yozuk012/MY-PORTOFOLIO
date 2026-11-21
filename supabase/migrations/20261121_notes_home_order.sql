@@ -1,3 +1,0 @@
--- Database notes tidak memiliki show_on_home maupun home_order.
--- Jangan jalankan migration ini. Notes homepage selalu menampilkan
--- maksimal 3 catatan published terbaru berdasarkan published_at.
