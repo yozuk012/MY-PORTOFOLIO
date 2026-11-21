@@ -19,7 +19,9 @@
     "experiences": "Experiences",
     "experiencesDesc": "Professional journey, internships, and real activities where I apply my skills to solve problems.",
     "projects": "Featured Projects",
-    "projectsDesc": "A curated selection of projects showcasing how I design and build digital solutions."
+    "projectsDesc": "A curated selection of projects showcasing how I design and build digital solutions.",
+    "notes": "Notes & Thoughts",
+    "notesDesc": "Reflections, ideas, observations, and random thoughts about many things — not limited to technology."
   },
   "education": {
     "present": "Present",
@@ -92,5 +94,12 @@
     "location": "Location",
     "defaultLocation": "Indonesia",
     "letsConnect": "Let's Connect"
+  },
+  "notes": {
+    "backToHome": "Back to Home",
+    "backToList": "Back to notes",
+    "viewAll": "View all notes",
+    "empty": "No notes have been published yet.",
+    "tags": "Tags"
   }
 }

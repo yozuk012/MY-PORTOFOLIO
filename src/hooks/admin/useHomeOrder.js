@@ -22,6 +22,7 @@ export function useHomeOrder() {
     skills: [],
     experiences: [],
     projects: [],
+    notes: [],
   });
   const [changes, setChanges] = useState({
     skills: {},
@@ -43,7 +44,7 @@ export function useHomeOrder() {
       setLoading(true);
       setError(null);
 
-      const [skillsRes, expRes, projRes] = await Promise.all([
+      const [skillsRes, expRes, projRes, notesRes] = await Promise.all([
         supabase
           .from("skills")
           .select("id, name, score, show_on_home, home_order")
@@ -59,16 +60,29 @@ export function useHomeOrder() {
           .select("id, title, status, show_on_home, home_order")
           .order("home_order", { ascending: true })
           .order("created_at", { ascending: false }),
+        supabase
+          .from("notes")
+          .select("id, title, is_published, published_at")
+          .eq("is_published", true)
+          .order("published_at", { ascending: false })
+          .limit(3),
       ]);
 
       if (skillsRes.error) throw skillsRes.error;
       if (expRes.error) throw expRes.error;
       if (projRes.error) throw projRes.error;
+      if (notesRes.error) throw notesRes.error;
 
       setData({
         skills: skillsRes.data || [],
         experiences: expRes.data || [],
         projects: projRes.data || [],
+        notes: (notesRes.data || []).map((note, index) => ({
+          ...note,
+          name: note.title,
+          show_on_home: true,
+          home_order: index + 1,
+        })),
       });
       setChanges({ skills: {}, experiences: {}, projects: {} });
     } catch (err) {
@@ -86,7 +100,11 @@ export function useHomeOrder() {
     const item = data[table].find((i) => i.id === id);
     if (!item) return;
 
+    if (table === "notes") return;
+
     const newVisibility = !item.show_on_home;
+
+    setError(null);
 
     setData((prev) => ({
       ...prev,

@@ -16,6 +16,7 @@ import {
   FaToggleOn,
   FaToggleOff,
   FaLayerGroup,
+  FaBookOpen,
 } from "react-icons/fa";
 import { useProfile } from "@/hooks/admin/useProfile";
 
@@ -65,6 +66,21 @@ export default function AdminDashboard() {
       desc: "Update email, nomor telepon, dan lokasi.",
       href: "/admin/contacts",
       icon: FaAddressBook,
+    },
+
+    {
+      title: "Spectrum Song",
+      desc: "Kelola lagu Spectrum Song yang ditampilkan di portofolio.",
+      href: "/admin/spectrum",
+      icon: FaCode,
+    },
+
+    {
+      title: "Notes",
+      desc: "Kelola catatan publik yang ditampilkan di portofolio.",
+      href: "/admin/notes",
+      icon: FaBookOpen,
+
     },
     {
       title: "Homepage Order",

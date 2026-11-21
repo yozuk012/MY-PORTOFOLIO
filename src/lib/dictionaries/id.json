@@ -19,7 +19,9 @@
     "experiences": "Pengalaman",
     "experiencesDesc": "Perjalanan profesional, magang, dan kegiatan nyata di mana saya menerapkan keahlian untuk memecahkan masalah.",
     "projects": "Proyek Unggulan",
-    "projectsDesc": "Kumpulan proyek pilihan yang menunjukkan cara saya merancang dan membangun solusi digital."
+    "projectsDesc": "Kumpulan proyek pilihan yang menunjukkan cara saya merancang dan membangun solusi digital.",
+    "notes": "Catatan & Pemikiran",
+    "notesDesc": "Refleksi, ide, observasi, dan random thoughts tentang segala hal — tidak terbatas pada teknologi."
   },
   "education": {
     "present": "Sekarang",
@@ -92,5 +94,12 @@
     "location": "Lokasi",
     "defaultLocation": "Indonesia",
     "letsConnect": "Mari Terhubung"
+  },
+  "notes": {
+    "backToHome": "Kembali ke Beranda",
+    "backToList": "Kembali ke daftar",
+    "viewAll": "Lihat semua catatan",
+    "empty": "Belum ada catatan yang dipublikasikan.",
+    "tags": "Tag"
   }
 }

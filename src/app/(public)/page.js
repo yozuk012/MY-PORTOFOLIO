@@ -1,10 +1,10 @@
-// src/app/(public)/page.js
 import { Suspense } from "react";
 import Section1Profile from "./home/components/Section1Profile";
 import Section2Skills from "./home/components/Section2Skills";
 import Section3Education from "./home/components/Section3Education";
 import Section4Experiences from "./home/components/Section4Experiences";
 import Section5Projects from "./home/components/Section5Projects";
+import Section6Notes from "./home/components/Section6Notes";
 
 // [DEBUG] export const instant = false;  <-- dimatikan sementara
 
@@ -222,6 +222,53 @@ export default function HomePage() {
         }
       >
         <Section5Projects />
+      </Suspense>
+
+            {/* ============================================ */}
+      {/* SECTION 6: NOTES                             */}
+      {/* ============================================ */}
+      <Suspense
+        fallback={
+          <section className="px-5 md:px-0 max-w-4xl mx-auto py-16 md:py-24 animate-pulse">
+            {/* Header: angka + judul (kiri), CTA (kanan) */}
+            <div className="flex items-baseline justify-between mb-3">
+              <div className="flex items-baseline gap-4">
+                <div className="h-3 w-8 rounded bg-surface" />
+                <div className="h-10 md:h-14 w-64 rounded bg-surface" />
+              </div>
+              <div className="hidden md:block h-4 w-28 rounded bg-surface" />
+            </div>
+            <div className="h-4 w-3/4 md:w-1/2 rounded bg-surface mb-10" />
+
+            {/* List cards */}
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="border border-border/40 rounded-lg p-5 md:p-6 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-3">
+                      <div className="h-4 w-20 rounded bg-surface" />
+                      <div className="h-4 w-28 rounded bg-surface" />
+                    </div>
+                    <div className="h-3 w-3 rounded bg-surface" />
+                  </div>
+                  <div className="h-6 w-3/4 rounded bg-surface" />
+                  <div className="h-4 w-full rounded bg-surface" />
+                  <div className="h-4 w-5/6 rounded bg-surface" />
+                  <div className="flex gap-2 pt-1">
+                    <div className="h-5 w-16 rounded bg-surface" />
+                    <div className="h-5 w-20 rounded bg-surface" />
+                    <div className="h-5 w-14 rounded bg-surface" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        }
+      >
+        <Section6Notes />
       </Suspense>
 
       {/* ============================================ */}

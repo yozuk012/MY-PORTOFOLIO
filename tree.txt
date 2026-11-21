@@ -17,6 +17,8 @@ my-project
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── homepage-order
 │   │   │   │   │   └── page.js
+│   │   │   │   ├── notes
+│   │   │   │   │   └── page.js
 │   │   │   │   ├── profile
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── projects
@@ -44,8 +46,11 @@ my-project
 │   │   │   │       ├── Section3Education.jsx
 │   │   │   │       ├── Section4Experiences.jsx
 │   │   │   │       ├── Section5Projects.jsx
+│   │   │   │       ├── Section6Notes.jsx
 │   │   │   │       ├── SpectrumBackground.jsx
 │   │   │   │       └── ThemeToggle.jsx
+│   │   │   ├── notes
+│   │   │   │   └── page.js
 │   │   │   ├── projects
 │   │   │   │   └── page.js
 │   │   │   ├── skills
@@ -76,6 +81,7 @@ my-project
 │   │   │   ├── useEducations.js
 │   │   │   ├── useExperiences.js
 │   │   │   ├── useHomeOrder.js
+│   │   │   ├── useNotes.js
 │   │   │   ├── useProfile.js
 │   │   │   ├── useProjects.js
 │   │   │   ├── useSkills.js
@@ -89,6 +95,9 @@ my-project
 │       ├── client.js
 │       ├── server.js
 │       └── translate.js
+├── supabase
+│   └── migrations
+│       └── 20261121_notes_home_order.sql
 ├── .env.local
 ├── .env.production
 ├── .gitignore

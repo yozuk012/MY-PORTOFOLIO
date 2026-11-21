@@ -18,6 +18,7 @@ import {
   FaCheck,
   FaExclamationTriangle,
   FaLightbulb,
+  FaBookOpen,
 } from "react-icons/fa";
 
 function OrderableRow({
@@ -29,6 +30,7 @@ function OrderableRow({
   moveItem,
   updateOrder,
   toggleVisibility,
+  readOnly = false,
 }) {
   return (
       <div
@@ -44,26 +46,28 @@ function OrderableRow({
         </span>
 
         {/* Tombol Pindah Atas/Bawah */}
-        <div className="flex flex-col gap-0.5 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => moveItem(table, item.id, "up")}
-            disabled={isFirst}
-            className="p-1 text-text-muted hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            title="Pindahkan ke atas"
-          >
-            <FaArrowUp className="w-2.5 h-2.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => moveItem(table, item.id, "down")}
-            disabled={isLast}
-            className="p-1 text-text-muted hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            title="Pindahkan ke bawah"
-          >
-            <FaArrowDown className="w-2.5 h-2.5" />
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex flex-col gap-0.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => moveItem(table, item.id, "up")}
+              disabled={isFirst}
+              className="p-1 text-text-muted hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Pindahkan ke atas"
+            >
+              <FaArrowUp className="w-2.5 h-2.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => moveItem(table, item.id, "down")}
+              disabled={isLast}
+              className="p-1 text-text-muted hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Pindahkan ke bawah"
+            >
+              <FaArrowDown className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        )}
 
         {/* Nama & Meta Item */}
         <div className="flex-1 min-w-0">
@@ -71,7 +75,9 @@ function OrderableRow({
             {item.name || item.title}
           </p>
           <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted/60 truncate mt-0.5">
-            {item.type
+            {readOnly
+              ? "Published Note"
+              : item.type
               ? `Type: ${item.type}`
               : item.status
               ? `Status: ${item.status}`
@@ -80,37 +86,41 @@ function OrderableRow({
         </div>
 
         {/* Input Urutan */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <label className="text-[10px] font-mono uppercase tracking-widest text-text-muted/60 hidden sm:block">
-            Order
-          </label>
-          <input
-            type="number"
-            value={item.home_order}
-            onChange={(e) => updateOrder(table, item.id, e.target.value)}
-            className="w-16 px-2 py-1.5 bg-surface/40 border border-border/40 rounded text-xs font-mono text-text-main text-center focus:outline-none focus:border-accent transition-colors"
-            min="0"
-            title="Semakin kecil, semakin atas"
-          />
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <label className="text-[10px] font-mono uppercase tracking-widest text-text-muted/60 hidden sm:block">
+              Order
+            </label>
+            <input
+              type="number"
+              value={item.home_order}
+              onChange={(e) => updateOrder(table, item.id, e.target.value)}
+              className="w-16 px-2 py-1.5 bg-surface/40 border border-border/40 rounded text-xs font-mono text-text-main text-center focus:outline-none focus:border-accent transition-colors"
+              min="0"
+              title="Semakin kecil, semakin atas"
+            />
+          </div>
+        )}
 
         {/* Toggle Visibility */}
-        <button
-          type="button"
-          onClick={() => toggleVisibility(table, item.id)}
-          className={`p-2 rounded-lg transition-all flex-shrink-0 ${
-            item.show_on_home
-              ? "bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20"
-              : "bg-surface border border-border/40 text-text-muted/40 hover:text-text-muted hover:border-border/60"
-          }`}
-          title={item.show_on_home ? "Sembunyikan dari home" : "Tampilkan di home"}
-        >
-          {item.show_on_home ? (
-            <FaEye className="w-3.5 h-3.5" />
-          ) : (
-            <FaEyeSlash className="w-3.5 h-3.5" />
-          )}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => toggleVisibility(table, item.id)}
+            className={`p-2 rounded-lg transition-all flex-shrink-0 ${
+              item.show_on_home
+                ? "bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20"
+                : "bg-surface border border-border/40 text-text-muted/40 hover:text-text-muted hover:border-border/60"
+            }`}
+            title={item.show_on_home ? "Sembunyikan dari home" : "Tampilkan di home"}
+          >
+            {item.show_on_home ? (
+              <FaEye className="w-3.5 h-3.5" />
+            ) : (
+              <FaEyeSlash className="w-3.5 h-3.5" />
+            )}
+          </button>
+        )}
       </div>
   );
 }
@@ -123,6 +133,7 @@ function SectionCard({
   moveItem,
   updateOrder,
   toggleVisibility,
+  maxVisible,
 }) {
   const visibleCount = items.filter((i) => i.show_on_home).length;
 
@@ -137,7 +148,7 @@ function SectionCard({
                 {title}
               </h2>
               <p className="text-[10px] font-mono uppercase tracking-widest text-text-muted/60 mt-0.5">
-                {visibleCount} / {items.length} ditampilkan
+                {visibleCount} / {maxVisible ?? items.length} ditampilkan
               </p>
             </div>
           </div>
@@ -161,6 +172,7 @@ function SectionCard({
                 moveItem={moveItem}
                 updateOrder={updateOrder}
                 toggleVisibility={toggleVisibility}
+                readOnly={table === "notes"} // Mark Notes rows as read-only
               />
             ))
           )}
@@ -318,6 +330,17 @@ export default function HomepageOrderPage() {
           moveItem={moveItem}
           updateOrder={updateOrder}
           toggleVisibility={toggleVisibility}
+        />
+
+        <SectionCard
+          title="Notes"
+          icon={FaBookOpen}
+          table="notes"
+          items={data.notes}
+          moveItem={moveItem}
+          updateOrder={updateOrder}
+          toggleVisibility={toggleVisibility}
+          maxVisible={3}
         />
       </div>
 
