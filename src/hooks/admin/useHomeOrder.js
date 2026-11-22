@@ -24,11 +24,15 @@ export function useHomeOrder() {
     projects: [],
     notes: [],
   });
+  
+  // ✅ PERBAIKAN 1: Tambahkan notes ke state changes
   const [changes, setChanges] = useState({
     skills: {},
     experiences: {},
     projects: {},
+    notes: {},
   });
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -37,13 +41,15 @@ export function useHomeOrder() {
   const supabase = createClient();
 
   // ============================================
-  // 1. FETCH SEMUA DATA DARI 3 TABEL
+  // 1. FETCH SEMUA DATA
   // ============================================
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // ✅ PERBAIKAN 2: Hapus prefix 'dev.' (client sudah handle schema)
+      // ✅ PERBAIKAN 3: Fetch show_on_home & home_order langsung dari DB untuk notes
       const [skillsRes, expRes, projRes, notesRes] = await Promise.all([
         supabase
           .from("skills")
@@ -62,10 +68,9 @@ export function useHomeOrder() {
           .order("created_at", { ascending: false }),
         supabase
           .from("notes")
-          .select("id, title, is_published, published_at")
-          .eq("is_published", true)
-          .order("published_at", { ascending: false })
-          .limit(3),
+          .select("id, title, show_on_home, home_order, is_published, published_at")
+          .order("home_order", { ascending: true })
+          .order("published_at", { ascending: false }),
       ]);
 
       if (skillsRes.error) throw skillsRes.error;
@@ -77,14 +82,11 @@ export function useHomeOrder() {
         skills: skillsRes.data || [],
         experiences: expRes.data || [],
         projects: projRes.data || [],
-        notes: (notesRes.data || []).map((note, index) => ({
-          ...note,
-          name: note.title,
-          show_on_home: true,
-          home_order: index + 1,
-        })),
+        // ✅ PERBAIKAN 4: Tidak ada lagi hardcode mapping untuk notes
+        notes: notesRes.data || [],
       });
-      setChanges({ skills: {}, experiences: {}, projects: {} });
+      
+      setChanges({ skills: {}, experiences: {}, projects: {}, notes: {} });
     } catch (err) {
       console.error("Error fetching home order data:", normalizeError(err));
       setError(normalizeError(err) || "Gagal memuat data");
@@ -100,10 +102,9 @@ export function useHomeOrder() {
     const item = data[table].find((i) => i.id === id);
     if (!item) return;
 
-    if (table === "notes") return;
-
+    // ✅ PERBAIKAN 5: Hapus guard 'if (table === "notes") return;' 
+    // Sekarang notes bisa di-toggle seperti tabel lainnya
     const newVisibility = !item.show_on_home;
-
     setError(null);
 
     setData((prev) => ({
@@ -158,8 +159,7 @@ export function useHomeOrder() {
     const currentIndex = list.findIndex((i) => i.id === id);
     if (currentIndex === -1) return;
 
-    const targetIndex =
-      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= list.length) return;
 
     const currentItem = list[currentIndex];
@@ -171,7 +171,7 @@ export function useHomeOrder() {
   };
 
   // ============================================
-  // 5. SAVE ALL CHANGES (pakai .update() per-row)
+  // 5. SAVE ALL CHANGES (MENGGUNAKAN RPC ATOMIK)
   // ============================================
   const saveChanges = async () => {
     try {
@@ -179,83 +179,56 @@ export function useHomeOrder() {
       setError(null);
       setSuccessMessage(null);
 
-      const tables = ["skills", "experiences", "projects"];
-      let totalUpdated = 0;
+      // ✅ PERBAIKAN 6: Format payload untuk RPC
+      const payload = {
+        p_skills: Object.entries(changes.skills).map(([id, c]) => ({
+          id,
+          show_on_home: c.show_on_home,
+          home_order: c.home_order,
+        })),
+        p_experiences: Object.entries(changes.experiences).map(([id, c]) => ({
+          id,
+          show_on_home: c.show_on_home,
+          home_order: c.home_order,
+        })),
+        p_projects: Object.entries(changes.projects).map(([id, c]) => ({
+          id,
+          show_on_home: c.show_on_home,
+          home_order: c.home_order,
+        })),
+        p_notes: Object.entries(changes.notes).map(([id, c]) => ({
+          id,
+          show_on_home: c.show_on_home,
+          home_order: c.home_order,
+        })),
+      };
 
-      for (const table of tables) {
-        const tableChanges = changes[table];
-        const changedIds = Object.keys(tableChanges);
-
-        if (changedIds.length === 0) continue;
-
-        for (const id of changedIds) {
-          const original = data[table].find((i) => i.id === id);
-
-          // Skip jika item tidak ditemukan (stale state)
-          if (!original) {
-            console.warn(
-              `[useHomeOrder] Item ${id} tidak ditemukan di tabel ${table}, dilewati.`
-            );
-            continue;
-          }
-
-          // Build payload: gabungkan perubahan dengan nilai original
-          const payload = {
-            show_on_home:
-              tableChanges[id].show_on_home ?? original.show_on_home,
-            home_order: tableChanges[id].home_order ?? original.home_order,
-            updated_at: new Date().toISOString(),
-          };
-
-          // ✅ FIX: gunakan .update() bukan .upsert()
-          // .upsert() gagal karena PostgreSQL mengevaluasi NOT NULL constraint
-          // (mis. skills.name, experiences.title/type, projects.title) SEBELUM
-          // deteksi konflik, padahal payload kita tidak menyertakan kolom tersebut.
-          const { error: updateError } = await supabase
-            .from(table)
-            .update(payload)
-            .eq("id", id);
-
-          if (updateError) {
-            console.error(
-              `[useHomeOrder] Gagal update ${table}/${id}:`,
-              {
-                message: updateError.message,
-                details: updateError.details,
-                hint: updateError.hint,
-                code: updateError.code,
-              }
-            );
-            throw updateError;
-          }
-
-          totalUpdated++;
-        }
-      }
-
-      // Reset changes & refresh data
-      setChanges({ skills: {}, experiences: {}, projects: {} });
-      setSuccessMessage(
-        `Berhasil menyimpan ${totalUpdated} perubahan tampilan.`
+      // ✅ PERBAIKAN 7: Panggil RPC 1x saja (tanpa prefix 'dev.')
+      const { data: totalUpdated, error: rpcError } = await supabase.rpc(
+        "save_home_order", 
+        payload
       );
+
+      if (rpcError) throw rpcError;
+
+      // Reset state & refresh data
+      setChanges({ skills: {}, experiences: {}, projects: {}, notes: {} });
+      setSuccessMessage(`Berhasil menyimpan ${totalUpdated || 0} perubahan tampilan.`);
       await fetchAll();
+      
     } catch (err) {
-      // Log detail lengkap untuk debugging
-      console.error("Error saving changes:", {
+      console.error("Error saving changes via RPC:", {
         message: err?.message,
         details: err?.details,
         hint: err?.hint,
         code: err?.code,
-        stack: err?.stack,
-        raw: err,
       });
 
-      // Pesan error untuk user
       const msg =
         err?.message ||
         err?.details ||
         err?.hint ||
-        "Gagal menyimpan perubahan. Periksa console untuk detail.";
+        "Gagal menyimpan perubahan. Pastikan Anda sudah login dan memiliki akses.";
       setError(msg);
     } finally {
       setSaving(false);
@@ -266,7 +239,7 @@ export function useHomeOrder() {
   // 6. RESET CHANGES
   // ============================================
   const resetChanges = () => {
-    setChanges({ skills: {}, experiences: {}, projects: {} });
+    setChanges({ skills: {}, experiences: {}, projects: {}, notes: {} });
     fetchAll();
   };
 
@@ -285,6 +258,7 @@ export function useHomeOrder() {
     fetchAll();
   }, [fetchAll]);
 
+  // Menghitung total perubahan (otomatis mencakup 'notes')
   const pendingChangesCount = Object.values(changes).reduce(
     (acc, table) => acc + Object.keys(table).length,
     0

@@ -26,14 +26,21 @@ export default async function Section6Notes() {
 
   const supabase = await createClient();
 
+  // ✅ PERBAIKAN UTAMA DI SINI:
+  // 1. Tambahkan show_on_home dan home_order ke select
+  // 2. Filter: is_published = true DAN show_on_home = true
+  // 3. Order: berdasarkan home_order (ascending), BUKAN published_at
+  // 4. Limit dihapus agar admin punya kontrol penuh berapa banyak yang muncul 
+  //    (atau bisa tetap .limit(3) jika ingin memaksa maksimal 3)
   const { data: notes, error } = await supabase
     .from("notes")
     .select(
-      "id, title, title_en, slug, excerpt, excerpt_en, content, content_en, category, category_en, tags, tags_en, published_at"
+      "id, title, title_en, slug, excerpt, excerpt_en, content, content_en, category, category_en, tags, tags_en, published_at, show_on_home, home_order"
     )
     .eq("is_published", true)
-    .order("published_at", { ascending: false })
-    .limit(3);
+    .eq("show_on_home", true) // ⭐ Hanya ambil yang di-toggle "ON" di admin
+    .order("home_order", { ascending: true }) // ⭐ Urutkan sesuai angka home_order
+    .limit(3); // Opsional: Hapus baris ini jika ingin admin bisa menampilkan >3 notes
 
   if (error) {
     console.error("Error fetching public notes:", error);
@@ -85,8 +92,8 @@ export default async function Section6Notes() {
         <div className="space-y-4">
           {noteList.map((note) => (
             <a
-              key={note.id} // ← Menggunakan note.id sebagai key
-              href={`/notes?id=${note.id}`} // ← Menggunakan query parameter ?id=
+              key={note.id}
+              href={`/notes?id=${note.id}`}
               className="group block border border-border/40 rounded-lg p-5 md:p-6 hover:border-accent/40 hover:bg-surface/30 transition-all duration-300"
             >
               {/* Meta row: kategori + tanggal (kiri), arrow (kanan) */}
@@ -106,7 +113,7 @@ export default async function Section6Notes() {
                   )}
                 </div>
 
-                {/* Arrow sejajar kanan — konsisten dengan pattern section lain */}
+                {/* Arrow sejajar kanan */}
                 <FaArrowRight className="w-3 h-3 flex-shrink-0 text-text-muted/40 group-hover:text-accent group-hover:translate-x-1 transition-all duration-300" />
               </div>
 
@@ -124,7 +131,7 @@ export default async function Section6Notes() {
 
               {/* Tags */}
               {(() => {
-                const tags = lang === "en" ? note.tags_en?.length ? note.tags_en : note.tags : note.tags;
+                const tags = lang === "en" ? (note.tags_en?.length ? note.tags_en : note.tags) : note.tags;
                 return tags && tags.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {tags.slice(0, 4).map((tag, j) => (
@@ -143,7 +150,7 @@ export default async function Section6Notes() {
         </div>
       ) : (
         <p className="text-sm text-text-muted py-8 italic">
-          {tOr("notes.empty", "Belum ada catatan yang dipublikasikan.")}
+          {tOr("notes.empty", "Belum ada catatan yang ditampilkan.")}
         </p>
       )}
 

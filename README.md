@@ -20,6 +20,30 @@ You can start editing the page by modifying `app/page.js`. The page auto-updates
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Toggle halaman publik
+
+Jalankan SQL ini di Supabase SQL Editor pada tabel `feature_toggles` yang sudah
+dipakai beranda. Untuk production, ganti `dev.feature_toggles` menjadi
+`prod.feature_toggles`. Seed ini tidak menimpa status toggle yang sudah ada.
+
+```sql
+insert into dev.feature_toggles (feature_key, is_enabled, description)
+values
+  ('page_contacts', true, 'Halaman publik Contacts'),
+  ('page_experiences', true, 'Halaman publik Experiences'),
+  ('page_notes', true, 'Halaman publik Notes, termasuk tampilan detail'),
+  ('page_projects', true, 'Halaman publik Projects'),
+  ('page_skills', true, 'Halaman publik Skills')
+on conflict (feature_key) do nothing;
+```
+
+Kelola kelima toggle lewat `/admin/feature-toggles` → **Public Pages**. Toggle
+ini terpisah dari `section_*` di beranda. Pastikan pengunjung anonim bisa membaca
+flag melalui kebijakan Supabase yang sudah dipakai beranda. Jika flag nonaktif,
+belum terdaftar, atau gagal dibaca, halaman memakai tampilan 404 bawaan situs
+(`src/app/not-found.js`). Section beranda yang nonaktif hanya disembunyikan.
+Gate ini mengatur tampilan, bukan akses langsung ke data Supabase.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

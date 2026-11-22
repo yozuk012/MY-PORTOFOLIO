@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/server";
+import PublicPageGate from "../home/components/PublicPageGate";
 import { FaArrowLeft, FaExternalLinkAlt, FaCode } from "react-icons/fa";
 
 // Import dictionary lokal
@@ -26,6 +27,14 @@ export const metadata = {
 // STATIC SHELL
 // ============================================================
 export default function ProjectsPage() {
+  return (
+    <PublicPageGate featureKey="page_projects">
+      <ProjectsPageContent />
+    </PublicPageGate>
+  );
+}
+
+function ProjectsPageContent() {
   return (
     <main className="min-h-screen px-5 md:px-0 max-w-5xl mx-auto py-20 md:py-28">
       {/* HEADER — perlu cookies, dibungkus Suspense */}

@@ -88,6 +88,12 @@ export default function AdminDashboard() {
       href: "/admin/homepage-order",
       icon: FaLayerGroup,
     },
+    {
+      title: "Feature Toggles",
+      desc: "Aktifkan atau nonaktifkan section homepage dan halaman publik.",
+      href: "/admin/feature-toggles",
+      icon: FaToggleOn,
+    }
   ];
 
   const handleLogout = async () => {
