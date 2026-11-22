@@ -22,25 +22,7 @@ const formatFeatureKey = (key) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-export default function FeatureTogglesPage() {
-  const { 
-    toggles, 
-    loading, 
-    saving, 
-    error, 
-    successMessage, 
-    toggleFeature 
-  } = useFeatureToggles();
-
-  // Grouping data untuk UI yang lebih rapi
-  const globalToggles = toggles.filter((t) => t.feature_key.startsWith("global_"));
-  const sections = toggles.filter((t) => t.feature_key.startsWith("section_"));
-  const pages = toggles.filter((t) => t.feature_key.startsWith("page_"));
-
-  // ============================================
-  // COMPONENT: Toggle List Group
-  // ============================================
-  const ToggleGroup = ({ title, icon: Icon, items, isWarning = false }) => (
+const ToggleGroup = ({ title, icon: Icon, items, isWarning = false, notice, saving, toggleFeature }) => (
     <div className={`bg-surface/30 border rounded-xl overflow-hidden ${isWarning ? "border-yellow-500/30" : "border-border/40"}`}>
       {/* Header Group */}
       <div className={`flex items-center gap-3 px-5 py-4 border-b ${isWarning ? "border-yellow-500/30 bg-yellow-500/5" : "border-border/40 bg-surface/20"}`}>
@@ -55,6 +37,12 @@ export default function FeatureTogglesPage() {
         </div>
       </div>
 
+      {notice && (
+        <p className="border-b border-border/40 px-5 py-3 text-xs text-yellow-400">
+          {notice}
+        </p>
+      )}
+
       {/* List Items */}
       <div className="divide-y divide-border/40">
         {items.length === 0 ? (
@@ -65,6 +53,7 @@ export default function FeatureTogglesPage() {
           </div>
         ) : (
           items.map((item) => {
+            const isContactsPage = item.feature_key === "page_contacts";
             // Khusus global_maintenance, gunakan variant danger saat aktif agar lebih mencolok
             const isGlobalMaintenance = item.feature_key === "global_maintenance";
             const btnVariant = (isGlobalMaintenance && item.is_enabled) ? "danger" : (item.is_enabled ? "primary" : "secondary");
@@ -80,10 +69,12 @@ export default function FeatureTogglesPage() {
                 {/* Info Fitur */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-text-main tracking-tight">
-                    {formatFeatureKey(item.feature_key)}
+                    {isContactsPage ? "Contacts" : formatFeatureKey(item.feature_key)}
                   </p>
                   <p className="text-[11px] font-mono text-text-muted/70 mt-1 line-clamp-2">
-                    {item.description}
+                    {isContactsPage
+                      ? "Atur akses ke halaman publik /contacts. Data kontak tetap tersimpan saat halaman dimatikan."
+                      : item.description}
                   </p>
                 </div>
 
@@ -116,7 +107,16 @@ export default function FeatureTogglesPage() {
         )}
       </div>
     </div>
-  );
+);
+
+export default function FeatureTogglesPage() {
+  const { toggles, loading, saving, error, successMessage, toggleFeature } = useFeatureToggles();
+
+  const globalToggles = toggles.filter((t) => t.feature_key.startsWith("global_"));
+  const sections = toggles.filter((t) => t.feature_key.startsWith("section_"));
+  const pages = toggles.filter((t) => t.feature_key.startsWith("page_"));
+  const hasContactsToggle = pages.some((item) => item.feature_key === "page_contacts");
+  const toggleActions = { saving, toggleFeature };
 
   // ============================================
   // RENDER: LOADING
@@ -209,6 +209,7 @@ export default function FeatureTogglesPage() {
             title="System & Global" 
             icon={FaTools} 
             items={globalToggles}
+            {...toggleActions}
             isWarning={globalToggles.some(t => t.is_enabled)} // Highlight jika ada yang aktif (misal: maintenance)
           />
         )}
@@ -217,12 +218,17 @@ export default function FeatureTogglesPage() {
           title="Homepage Sections" 
           icon={FaHome} 
           items={sections} 
+          {...toggleActions}
         />
         
         <ToggleGroup 
           title="Public Pages" 
           icon={FaFileAlt} 
-          items={pages} 
+          items={pages}
+          {...toggleActions}
+          notice={!error && !hasContactsToggle
+            ? "Toggle Contacts tidak terbaca. Pastikan page_contacts tersedia di tabel feature_toggles pada skema yang dipakai dashboard."
+            : null}
         />
       </div>
 
