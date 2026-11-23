@@ -1,19 +1,29 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/server';
 
-/**
- * GET /api/github/repos
- * Mengambil daftar repository dari akun GitHub Anda.
- * Endpoint ini bersifat PRIVATE (Server-side), token tidak akan bocor ke browser.
- */
+function reposResponse(body, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: { 'Cache-Control': 'private, no-store' },
+  });
+}
+
 export async function GET() {
-  const username = process.env.GITHUB_USERNAME;
-  const token = process.env.GITHUB_TOKEN;
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return reposResponse({ error: 'Sesi admin tidak aktif. Silakan login kembali.' }, 401);
+  }
+
+  const username = process.env.GITHUB_USERNAME?.trim();
+  const token = process.env.GITHUB_TOKEN?.trim();
 
   // 1. Validasi Environment Variables
   if (!username || !token) {
-    return NextResponse.json(
-      { error: 'Konfigurasi GitHub belum lengkap. Cek file .env.local' },
-      { status: 500 }
+    return reposResponse(
+      { error: 'Konfigurasi GitHub belum lengkap. Cek GITHUB_USERNAME dan GITHUB_TOKEN di environment deployment.' },
+      500
     );
   }
 
@@ -21,7 +31,7 @@ export async function GET() {
     // 2. Fetch data dari GitHub API
     // Kita ambil 100 repo terbaru yang di-update, dan skip fork (karya orang lain)
     const response = await fetch(
-      `https://api.github.com/users/${username}/repos?per_page=100&sort=updated&type=owner`,
+      `https://api.github.com/users/${encodeURIComponent(username)}/repos?per_page=100&sort=updated&type=owner`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -37,11 +47,18 @@ export async function GET() {
 
     // 3. Handle Error dari GitHub
     if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { error: 'Gagal mengambil data dari GitHub', details: errorData.message },
-        { status: response.status }
-      );
+      console.error('[GitHub repos] GitHub API mengembalikan status', response.status);
+
+      if (response.status === 429 || response.headers.get('x-ratelimit-remaining') === '0') {
+        return reposResponse({ error: 'Batas permintaan GitHub tercapai. Coba lagi nanti.' }, 429);
+      }
+      if (response.status === 401 || response.status === 403) {
+        return reposResponse({ error: 'GitHub menolak akses. Periksa masa berlaku dan izin GITHUB_TOKEN.' }, 502);
+      }
+      if (response.status === 404) {
+        return reposResponse({ error: 'Akun GitHub tidak ditemukan atau tidak dapat diakses. Periksa GITHUB_USERNAME dan izin token.' }, 502);
+      }
+      return reposResponse({ error: 'GitHub gagal memuat repository. Coba lagi nanti.' }, 502);
     }
 
     const allRepos = await response.json();
@@ -64,17 +81,14 @@ export async function GET() {
       }));
 
     // 5. Kirim Response ke Frontend
-    return NextResponse.json({
+    return reposResponse({
       success: true,
       count: filteredRepos.length,
       data: filteredRepos,
     });
 
-  } catch (error) {
-    console.error('[GitHub API Route Error]:', error);
-    return NextResponse.json(
-      { error: 'Terjadi kesalahan internal server' },
-      { status: 500 }
-    );
+  } catch {
+    console.error('[GitHub repos] Gagal mengambil atau membaca respons GitHub API');
+    return reposResponse({ error: 'Tidak dapat memuat data dari GitHub. Coba lagi nanti.' }, 502);
   }
 }

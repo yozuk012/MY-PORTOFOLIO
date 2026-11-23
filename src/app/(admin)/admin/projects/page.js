@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useProjects } from "@/hooks/admin/useProjects";
 
 import {
@@ -87,11 +87,13 @@ export default function ManageProjectsPage() {
     setGithubError(null);
     try {
       const res = await fetch("/api/github/repos");
-      const result = await res.json();
-      if (result.success && Array.isArray(result.data)) {
+      const result = res.headers.get("content-type")?.includes("application/json")
+        ? await res.json()
+        : null;
+      if (res.ok && result?.success && Array.isArray(result.data)) {
         setGithubRepos(result.data);
       } else {
-        setGithubError(result.message || "Gagal memuat repository GitHub.");
+        setGithubError(result?.error || `Gagal memuat repository GitHub (HTTP ${res.status}).`);
       }
     } catch (err) {
       console.error("Gagal mengambil repo GitHub:", err);

@@ -13,6 +13,7 @@ export async function middleware(request) {
   let supabaseResponse = NextResponse.next({ request })
   const host = request.nextUrl.hostname
   const pathname = request.nextUrl.pathname
+  const isApiRoute = pathname === '/api' || pathname.startsWith('/api/')
   const url = request.nextUrl.clone()
 
   // Helper untuk identifikasi host
@@ -70,7 +71,7 @@ export async function middleware(request) {
   // ==========================================
 
   // SKENARIO 1: User mengakses dari Subdomain Admin (atau localhost)
-  if (isTargetAdminHost) {
+  if (isTargetAdminHost && !isApiRoute) {
     // Jika akses root `/`, tampilkan halaman dashboard admin
     if (pathname === '/' || pathname === '') {
       url.pathname = '/admin'
