@@ -156,8 +156,8 @@ export function useProjects() {
             github_stars: formData.github_stars || 0,
             github_last_synced: formData.github_last_synced || new Date().toISOString(),
             // 🆕 BARU: Field Homepage Order (jika ada di form)
-            show_on_home: formData.show_on_home || false,
-            home_order: formData.home_order || 999,
+            show_on_home: formData.show_on_home ?? false,
+            home_order: formData.home_order ?? projects.length + 1,
             
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -232,10 +232,6 @@ export function useProjects() {
           github_repo: formData.github_repo || null,
           github_stars: formData.github_stars !== undefined ? formData.github_stars : 0,
           github_last_synced: formData.github_last_synced || new Date().toISOString(),
-          // 🆕 BARU: Field Homepage Order
-          show_on_home: formData.show_on_home || false,
-          home_order: formData.home_order || 999,
-          
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
@@ -307,10 +303,10 @@ export function useProjects() {
       
       // Memanggil API route Next.js untuk mengambil data terbaru dari GitHub
       const response = await fetch(`/api/github/sync?repo=${encodeURIComponent(githubRepoName)}`);
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Gagal mengambil data dari GitHub");
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || `Gagal mengambil data dari GitHub (HTTP ${response.status}).`);
       }
 
       // Update database dengan data terbaru
@@ -320,7 +316,7 @@ export function useProjects() {
           github_stars: result.data.stargazers_count,
           github_last_synced: new Date().toISOString(),
           // Opsional: update tech_tags jika bahasa di GitHub berubah
-          tech_tags: result.data.topics.length > 0 ? result.data.topics : (result.data.language ? [result.data.language] : []),
+          tech_tags: result.data.topics?.length > 0 ? result.data.topics : (result.data.language ? [result.data.language] : []),
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
